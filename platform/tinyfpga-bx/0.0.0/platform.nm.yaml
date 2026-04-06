@@ -42,7 +42,7 @@ pin:
 intr:
   irq2: ""
 
-build:
+scripts:
   linux:
     transpile:
       cmd: micon transpile
@@ -53,7 +53,7 @@ build:
       dst:
         - software/micon.rs
         - hardware/main.veryl
-    
+
     veryl:
       cmd: |
         set -e
@@ -82,13 +82,12 @@ build:
       dst:
         - build/main.sv
         - build/read_sv.ys
-        
+
     synthesis:
       cmd: yosys -s build/read_sv.ys -p "synth_ice40 -top top -json build/out.json"
       src:
         - build/read_sv.ys
         - build/*.sv
-        - package/**/*.sv
       dst:
         - build/out.json
 
@@ -136,6 +135,56 @@ build:
         - build/out.bin
         - build/fw.bin
 
+    flash-wsl:
+      cmd: |
+        set -e
+        cp build/out.bin /mnt/c/tmp/out.bin
+        cp build/fw.bin /mnt/c/tmp/fw.bin
+        cmd.exe /C "tinyprog -p C:\\tmp\\out.bin -u C:\\tmp\\fw.bin"
+      src:
+        - build/out.bin
+        - build/fw.bin
+
+    testbench:
+      cmd: micon testbench
+      src:
+        - sim/*/stimuli.nm.yaml
+      dst:
+        - sim/*/tb_top.cpp
+
+    verilator:
+      cmd: |
+        set -e
+        SIM_DIR=sim/$MICON_SIM_ID
+        cat > $SIM_DIR/fpga_stubs.sv <<'SV'
+        module SB_IO #(
+            parameter [5:0] PIN_TYPE = 6'b0,
+            parameter PULLUP = 1'b0
+        ) (
+            inout  PACKAGE_PIN,
+            input  OUTPUT_ENABLE,
+            input  D_OUT_0,
+            output D_IN_0
+        );
+            assign PACKAGE_PIN = OUTPUT_ENABLE ? D_OUT_0 : 1'bz;
+            assign D_IN_0 = PACKAGE_PIN;
+        endmodule
+        SV
+        SV_FILES=$(sed 's/read_verilog -sv //' build/read_sv.ys)
+        verilator --cc --exe --build --trace --top-module top \
+          $SIM_DIR/fpga_stubs.sv $SV_FILES $SIM_DIR/tb_top.cpp \
+          -o sim_top --Mdir $SIM_DIR/obj_dir \
+          -Wno-PINMISSING -Wno-WIDTHTRUNC -Wno-WIDTHEXPAND -Wno-WIDTHXZEXPAND \
+          -Wno-CASEINCOMPLETE -Wno-UNSIGNED -Wno-UNOPTFLAT -Wno-MULTITOP \
+          -Wno-TIMESCALEMOD -Wno-CASEOVERLAP -Wno-LATCH -Wno-IMPLICIT -Wno-fatal
+        $SIM_DIR/obj_dir/sim_top
+      src:
+        - build/read_sv.ys
+        - build/*.sv
+        - sim/*/tb_top.cpp
+      dst:
+        - sim/*/out.vcd
+
   windows:
     transpile:
       cmd: micon transpile
@@ -152,7 +201,6 @@ build:
       src:
         - build\read_sv.ys
         - build\*.sv
-        - package\**\*.sv
       dst:
         - build\out.json
 
