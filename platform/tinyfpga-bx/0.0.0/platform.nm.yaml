@@ -140,7 +140,7 @@ scripts:
         set -e
         cp build/out.bin /mnt/c/tmp/out.bin
         cp build/fw.bin /mnt/c/tmp/fw.bin
-        cmd.exe /C "tinyprog -p C:\\tmp\\out.bin -u C:\\tmp\\fw.bin"
+        powershell.exe -c 'tinyprog -p C:\tmp\out.bin -u C:\tmp\fw.bin'
       src:
         - build/out.bin
         - build/fw.bin
