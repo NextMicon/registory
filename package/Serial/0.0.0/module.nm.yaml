@@ -1,0 +1,9 @@
+target:
+  bus: 'true'
+params: {}
+ports: {}
+elems:
+  rx: {type: PortIn, bit: 1, pos: [100, 60], flip: false}
+  tx: {type: PortOut, bit: 1, pos: [100, 100], flip: false}
+wires: {}
+comments: {}

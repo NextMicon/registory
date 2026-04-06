@@ -1,0 +1,32 @@
+target:
+  bus: 'true'
+params: {}
+elems:
+  scl:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 0.0
+    flip: false
+  sda_io:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 60.0
+    flip: false
+  sda_tx:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 120.0
+    flip: false
+  sda_rx:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 0.0
+    flip: true

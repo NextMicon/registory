@@ -1,0 +1,39 @@
+module Analog (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    wstrb: input logic<4>,
+    addr: input logic<32>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    out: output logic,
+) {
+    var counter: logic<8>;
+    var threshold: logic<32>;
+
+    always_ff {
+        if_reset {
+            counter = 0;
+            threshold = 0;
+            out = 0;
+        } else {
+            // register
+            ready = valid;
+            rdata = threshold;
+            if wstrb[0] { threshold[7:0] = wdata[7:0]; }
+            if wstrb[1] { threshold[15:8] = wdata[15:8]; }
+            if wstrb[2] { threshold[23:16] = wdata[23:16]; }
+            if wstrb[3] { threshold[31:24] = wdata[31:24]; }
+            // pwm
+            counter = counter + 1;
+            if counter <: threshold {
+                out = 1;
+            } else {
+                out = 0;
+            }
+        }
+    }
+}

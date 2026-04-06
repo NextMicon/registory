@@ -1,0 +1,126 @@
+clk: 27000000
+
+mem:
+  ram: [0, 32768]
+  flash: [0x00100000, 0x00200000]
+
+pin:
+  pin_25: io
+  pin_26: io
+  pin_27: io
+  pin_28: io
+  pin_29: io
+  pin_30: io
+  pin_31: io
+  pin_32: io
+  pin_33: io
+  pin_34: io
+  pin_35: io
+  pin_36: io
+  pin_37: io
+  pin_38: io
+  pin_39: io
+  pin_40: io
+  pin_41: io
+  pin_42: io
+  pin_43: io
+  pin_44: io
+  pin_45: io
+  pin_46: io
+  pin_47: io
+  pin_48: io
+  led_0: o
+  led_1: o
+  led_2: o
+  led_3: o
+  led_4: o
+  led_5: o
+  btn_0: i
+  btn_1: i
+
+intr: {}
+
+build:
+  linux:
+    transpile:
+      cmd: $MICON_BIN transpile
+      src:
+        - project.nm.yaml
+        - package/**/*.sv
+        - package/**/*.veryl
+      dst:
+        - $MICON_BUILD_DIR/main.sv
+        - $MICON_BUILD_DIR/read_sv.ys
+        - software/micon.rs
+
+    synthesis:
+      cmd: yosys -s $MICON_BUILD_DIR/read_sv.ys -p "synth_gowin -top top -json $MICON_BUILD_DIR/out.json"
+      src:
+        - $MICON_BUILD_DIR/read_sv.ys
+        - $MICON_BUILD_DIR/*.sv
+        - package/**/*.sv
+      dst:
+        - $MICON_BUILD_DIR/out.json
+
+    pnr:
+      cmd: "nextpnr-gowin --json $MICON_BUILD_DIR/out.json --write $MICON_BUILD_DIR/out.pack --device GW1NR-LV9QN88PC6/I5 --cst constraints.cst"
+      src:
+        - $MICON_BUILD_DIR/out.json
+        - constraints.cst
+      dst:
+        - $MICON_BUILD_DIR/out.pack
+
+    bitstream:
+      cmd: "gowin_pack -d GW1NR-9C -o $MICON_BUILD_DIR/out.fs $MICON_BUILD_DIR/out.pack"
+      src:
+        - $MICON_BUILD_DIR/out.pack
+      dst:
+        - $MICON_BUILD_DIR/out.fs
+
+    flash:
+      cmd: "openFPGALoader -b tangnano9k $MICON_BUILD_DIR/out.fs"
+      src:
+        - $MICON_BUILD_DIR/out.fs
+
+  windows:
+    transpile:
+      cmd: '%MICON_BIN% transpile'
+      src:
+        - project.nm.yaml
+        - package\**\*.sv
+        - package\**\*.veryl
+      dst:
+        - "%MICON_BUILD_DIR%\\main.sv"
+        - "%MICON_BUILD_DIR%\\read_sv.ys"
+        - sw\micon.rs
+
+    synthesis:
+      cmd: yosys -s %MICON_BUILD_DIR%\read_sv.ys -p "synth_gowin -top top -json %MICON_BUILD_DIR%\out.json"
+      src:
+        - "%MICON_BUILD_DIR%\\read_sv.ys"
+        - "%MICON_BUILD_DIR%\\*.sv"
+        - package\**\*.sv
+      dst:
+        - "%MICON_BUILD_DIR%\\out.json"
+
+    pnr:
+      cmd: nextpnr-gowin --json %MICON_BUILD_DIR%\out.json --write %MICON_BUILD_DIR%\out.pack --device GW1NR-LV9QN88PC6/I5 --cst constraints.cst
+      src:
+        - "%MICON_BUILD_DIR%\\out.json"
+        - constraints.cst
+      dst:
+        - "%MICON_BUILD_DIR%\\out.pack"
+
+    bitstream:
+      cmd: gowin_pack -d GW1NR-9C -o %MICON_BUILD_DIR%\out.fs %MICON_BUILD_DIR%\out.pack
+      src:
+        - "%MICON_BUILD_DIR%\\out.pack"
+      dst:
+        - "%MICON_BUILD_DIR%\\out.fs"
+
+    flash:
+      cmd: openFPGALoader -b tangnano9k %MICON_BUILD_DIR%\out.fs
+      src:
+        - "%MICON_BUILD_DIR%\\out.fs"
+
+  macos: {}

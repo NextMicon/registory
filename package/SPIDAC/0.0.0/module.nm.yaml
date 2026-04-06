@@ -1,0 +1,13 @@
+target:
+  bus: 'true'
+params: {}
+ports: {}
+elems:
+  din: {type: PortIn, bit: 12, pos: [100, 60], flip: true}
+  sample: {type: PortIn, bit: 1, pos: [100, 120], flip: true}
+  cs: {type: PortOut, bit: 1, pos: [300, 60], flip: false}
+  scl: {type: PortOut, bit: 1, pos: [300, 120], flip: false}
+  sdi: {type: PortOut, bit: 1, pos: [300, 180], flip: false}
+  ldac: {type: PortOut, bit: 1, pos: [300, 240], flip: false}
+wires: {}
+comments: {}

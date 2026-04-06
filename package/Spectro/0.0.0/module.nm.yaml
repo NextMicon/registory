@@ -1,0 +1,29 @@
+target:
+  bus: 'true'
+params: {}
+size:
+- 240
+- 80
+textX: 0
+elems:
+  in:
+    type: PortIn
+    bit: 12
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  sample:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 60.0
+    flip: true
+  done:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 0.0
+    flip: false

@@ -1,0 +1,210 @@
+clk: 16000000
+
+mem:
+  ram: [0, 8192]
+  flash: [0x00050000, 0x00080000]
+  user: [0x03000000, 0xFF000000]
+
+pin:
+  led: o
+  pin01: io
+  pin02: io
+  pin03: io
+  pin04: io
+  pin05: io
+  pin06: io
+  pin07: io
+  pin08: io
+  pin09: io
+  pin10: io
+  pin11: io
+  pin12: io
+  pin13: io
+  pin14: io
+  pin15: io
+  pin16: io
+  pin17: io
+  pin18: io
+  pin19: io
+  pin20: io
+  pin21: io
+  pin22: io
+  pin23: io
+  pin24: io
+  pin25: io
+  pin26: io
+  pin27: io
+  pin28: io
+  pin29: io
+  pin30: io
+  pin31: io
+
+intr:
+  irq2: ""
+
+scripts:
+  linux:
+    generate:
+      note: Generate hardware and firmware from module.nm.yaml
+      cmd: micon generate
+      src:
+        - module.nm.yaml
+        - modules/**/*.veryl
+        - .modules/**/*.veryl
+      out:
+        - micon.veryl
+        - software/micon.rs
+
+    transpile:
+      note: Convert Veryl to SystemVerilog
+      cmd: |
+        set -e
+        veryl build
+        mv micon.f build/micon.f
+      src:
+        - micon.veryl
+        - modules/**/*.veryl
+        - .modules/**/*.veryl
+      out:
+        - build/micon.f
+
+    synth:
+      note: Synthesize (yosys) → Place & Route (nextpnr) → Bitstream generation (icepack)
+      cmd: |
+        set -e
+        mkdir -p build/synth
+        sed 's/^/read_verilog -sv /' build/micon.f > build/synth/files.ys
+        printf 'read_verilog -sv %s\n' platform/hardware/*.sv >> build/synth/files.ys
+        yosys -s build/synth/files.ys -p "synth_ice40 -top top -json build/synth/out.json"
+        nextpnr-ice40 --lp8k --package cm81 --threads $(nproc) \
+          --pcf platform/hardware/pin.pcf \
+          --json build/synth/out.json --asc build/synth/out.asc
+        icetime -d lp8k -c 12 -mtr build/synth/timing.rpt build/synth/out.asc
+        icepack build/synth/out.asc build/hardware.bin
+      src:
+        - build/micon.f
+        - platform/hardware/*.sv
+      out:
+        - build/hardware.bin
+
+    compile:
+      note: Compile firmware (Rust → RISC-V binary)
+      cmd: |
+        set -e
+        mkdir -p build/compile
+        rustc --edition 2021 --target riscv32im-unknown-none-elf \
+          -C opt-level=s -C panic=abort --emit=obj \
+          -o build/compile/software.o software/main.rs
+        riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -nostartfiles \
+          -Wl,-Bstatic,-T,platform/software/sections.lds,--strip-debug,-Map=build/compile/software.map,--cref,--no-warn-mismatch \
+          -O3 -ffreestanding -nostdlib \
+          -o build/compile/software.elf platform/software/start.S build/compile/software.o
+        riscv64-unknown-elf-objcopy -O binary build/compile/software.elf build/software.bin
+        truncate -s %256 build/software.bin
+        riscv64-unknown-elf-objdump --demangle -D build/compile/software.elf > build/compile/software.objdump
+        riscv64-unknown-elf-nm --demangle --numeric-sort build/compile/software.elf > build/compile/software.nm
+      src:
+        - software/*.rs
+        - Cargo.toml
+        - platform/software/start.S
+        - platform/software/sections.lds
+      out:
+        - build/software.bin
+
+    flash:
+      note: Flash bitstream + firmware via TinyProg
+      cmd: "tinyprog -p build/hardware.bin -u build/software.bin"
+      src:
+        - build/hardware.bin
+        - build/software.bin
+
+    flash-wsl:
+      note: Flash via WSL (copies to C:\tmp)
+      cmd: |
+        set -e
+        cp build/hardware.bin /mnt/c/tmp/hardware.bin
+        cp build/software.bin /mnt/c/tmp/software.bin
+        powershell.exe -c 'tinyprog -p C:\tmp\hardware.bin -u C:\tmp\software.bin'
+      src:
+        - build/hardware.bin
+        - build/software.bin
+
+    simulate:
+      note: Run simulation with Verilator
+      cmd: |
+        set -e
+        mkdir -p build/simulation
+
+        # Generate flash hex from firmware binary (16MB image, FW at 0x050000)
+        dd if=/dev/zero bs=1 count=$((0x050000)) 2>/dev/null > build/simulation/flash.bin
+        cat build/software.bin >> build/simulation/flash.bin
+        truncate -s 16M build/simulation/flash.bin
+        xxd -c 1 -p build/simulation/flash.bin > build/simulation/flash.hex
+
+        # SV file list: transpile output + platform hardware
+        SV_FILES="$(cat build/micon.f) $(echo platform/hardware/*.sv)"
+
+        # Copy simulation sources and strip synthesis-only modules from hardware SV
+        cp platform/simulate/test.sv build/simulation/test.sv
+        cp platform/simulate/cells.sv build/simulation/cells.sv
+        cp simulate/main.cpp build/simulation/main.cpp
+        for f in $SV_FILES; do
+          sed '/^module tristate/,/^endmodule/d' "$f" > "build/simulation/$(basename "$f")"
+        done
+        SIM_SV_FILES=""
+        for f in $SV_FILES; do
+          SIM_SV_FILES="$SIM_SV_FILES build/simulation/$(basename "$f")"
+        done
+
+        # Compile with Verilator
+        verilator --cc --exe --build --trace \
+          --timescale "1ns/1ps" \
+          --top-module tb \
+          --public-flat-rw \
+          -Wno-lint -Wno-style \
+          -j $(nproc) \
+          --Mdir build/simulation/obj_dir \
+          -o sim \
+          build/simulation/test.sv \
+          build/simulation/cells.sv \
+          $SIM_SV_FILES \
+          build/simulation/main.cpp
+
+        # Run simulation
+        build/simulation/obj_dir/sim
+      src:
+        - simulate/main.cpp
+        - build/micon.f
+        - build/software.bin
+        - platform/hardware/*.sv
+      out:
+        - simulation/out.vcd
+
+  windows:
+    generate:
+      cmd: micon generate
+      src:
+        - project.nm.yaml
+        - modules\**\*.veryl
+        - .modules\**\*.veryl
+      out:
+        - software\micon.rs
+        - hardware\main.veryl
+
+    synth:
+      cmd: |
+        yosys -s build\files.ys -p "synth_ice40 -top top -json build\synth\out.json"
+        nextpnr-ice40 --lp8k --package cm81 --pcf platform\hardware\pin.pcf --json build\synth\out.json --asc build\synth\out.asc
+        icepack build\synth\out.asc build\hardware.bin
+      src:
+        - build\files.ys
+        - platform\hardware\pin.pcf
+      out:
+        - build\hardware.bin
+
+    flash:
+      cmd: tinyprog -p build\hardware.bin
+      src:
+        - build\hardware.bin
+
+  macos: {}

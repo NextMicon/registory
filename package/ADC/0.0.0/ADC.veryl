@@ -1,0 +1,112 @@
+// SPIMaster
+//       : _  :_   _   _   _   _   _   _  :_   _   _   _
+// clk   :  |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_
+//       :    :___:___:___________________:___:__
+// wstrb : ___/   :   :                   :   :  \_________
+//       :    :   :   :                   :   :   :
+// state : W  X SENDING                   XENDING X WAITING
+//       :    :___:___:_______     _______:___:___:
+// count : ___/___7___X___6___X...X___0___X_1_X_0_\_0______
+//       :    :   :___:    ___         ___:   :   :
+// sclk  : _______/   \___/   \...\___/   \________________
+//       :    :___:___:_______     _______:   :   :
+// mosi  : ---<__[7]__X_[6]___X...X_[0]___>----------------
+//       :    :___:___:_______     _______:   :   :
+// miso  : ---<__[7]__X_[6]___X...X_[0]___>----------------
+//       :    :   :   :                   :______ :
+// ready : _______________________________/      \______
+//       :    :   :   :                   :       :
+//      [I]  [S] [A] [B]                 [E]     [W]
+
+// [S] Transfer starts by write strobe wstrb
+//     First data is output to MOSI
+// [A] Data is captured here
+// [B] Next data is output to MOSI
+// [E] Ends 1 byte transfer
+//     Sets received data to register and asserts ready
+// * SS is controlled by GPIO
+
+module ADC #(
+    param CPOL: u32 = 0,
+    param CPHA: u32 = 0,
+) (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    addr: input logic<32>,
+    wstrb: input logic<4>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    sclk: output logic,
+    mosi: output logic,
+    miso: input logic,
+) {
+
+    var state: logic<3>;
+    var count: logic<3>;
+    var dsnd: logic<8>;
+    var drcv: logic<8>;
+
+    const WAITING: logic<3> = 3'b001;
+    const SENDING: logic<3> = 3'b010;
+    const ENDING : logic<3> = 3'b100;
+
+    always_ff {
+        if_reset {  // [I] Initial state
+            state = WAITING;
+            count = 0;
+            sclk  = 0;
+            mosi  = 0;
+            dsnd  = 0;
+            drcv  = 0;
+        } else {
+            ready = valid && (state == ENDING);
+            rdata = {24'b0, dsnd};
+            case state {
+                WAITING: {
+                    if |wstrb {  // [S] Start SENDING
+                        dsnd  = wdata[7:0];  // Latch send data
+                        state = SENDING;
+                        count = 7;
+                        sclk  = 0;
+                        mosi  = wdata[7];
+                    }
+                }
+                SENDING: {
+                    case sclk {
+                        1'b0: {  // [A]
+                            sclk = 1;
+                        }
+                        1'b1: {
+                            if count != 0 {  // [B]
+                                sclk = 0;
+                                count = count - 1;
+                                mosi = dsnd[count];
+                                drcv[count] = miso;
+                            } else {  // [E] ENDING
+                                state = ENDING;
+                                count = 1;
+                            }
+                        }
+                        default: {}
+                    }
+                }
+                ENDING: {
+                    case count {
+                        3'd1: {
+                            count = 0;
+                        }
+                        3'd0: {
+                            state = WAITING;
+                        }
+                        default: {}
+                    }
+                }
+                default: {}
+            }
+        }
+    }
+}

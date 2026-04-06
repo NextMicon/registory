@@ -1,0 +1,205 @@
+clk: 100000000
+mem:
+  user:
+  - 268435456
+  - 536870911
+pin:
+  clk: i
+  rstn: i
+  usb_pullup: o
+  default_user: i
+  usb_dp: io
+  usb_dn: io
+  led0: o
+  led1: o
+  gpio1: io
+  gpio2: io
+  gpio3: io
+  gpio4: io
+  gpio5: io
+  gpio6: io
+  gpio7: io
+  gpio8: io
+  gpio9: io
+  gpio10: io
+  gpio11: io
+  gpio12: io
+  gpio13: io
+  gpio14: io
+  gpio15: io
+  gpio16: io
+  gpio17: io
+  gpio18: io
+  gpio19: io
+  gpio20: io
+  gpio21: io
+  gpio22: io
+  gpio23: io
+  gpio24: io
+  gpio25: io
+  gpio26: io
+  gpio27: io
+  gpio28: io
+  gpio29: io
+  gpio30: io
+  gpio31: io
+  gpio32: io
+  gpio33: io
+  gpio34: io
+  gpio35: io
+  gpio36: io
+  gpio37: io
+  gpio38: io
+  gpio39: io
+  gpio40: io
+  gpio41: io
+  gpio42: io
+  gpio43: io
+  gpio44: io
+  gpio45: io
+  gpio46: io
+  gpio47: io
+  gpio48: io
+  gpio49: io
+  gpio50: io
+  gpio51: io
+  gpio52: io
+  gpio53: io
+  gpio54: io
+  gpio55: io
+  gpio56: io
+  gpio57: io
+  gpio58: io
+  gpio59: io
+  gpio60: io
+  gpio61: io
+  gpio62: io
+  gpio63: io
+  gpio64: io
+  gpio65: io
+  gpio66: io
+  gpio67: io
+  gpio68: io
+  gpio69: io
+  gpio70: io
+  gpio71: io
+  gpio72: io
+  gpio73: io
+  gpio74: io
+  gpio75: io
+  gpio76: io
+  gpio77: io
+  gpio78: io
+  gpio79: io
+  gpio80: io
+  gpio81: io
+  gpio82: io
+  gpio83: io
+  gpio84: io
+  gpio85: io
+  gpio86: io
+  gpio87: io
+  gpio88: io
+  gpio89: io
+  gpio90: io
+  gpio91: io
+  gpio92: io
+  gpio93: io
+  gpio94: io
+  gpio95: io
+  gpio96: io
+  gpio97: io
+  gpio98: io
+  gpio99: io
+  gpio100: io
+  gpio101: io
+  gpio102: io
+  gpio103: io
+  gpio104: io
+  gpio105: io
+  gpio106: io
+  gpio107: io
+  gpio108: io
+  gpio109: io
+  gpio110: io
+  gpio111: io
+  gpio112: io
+  gpio113: io
+  gpio114: io
+  gpio115: io
+  gpio116: io
+  gpio117: io
+  gpio118: io
+  gpio119: io
+  gpio120: io
+  gpio121: io
+  gpio122: io
+  gpio123: io
+  gpio124: io
+  gpio125: io
+  gpio126: io
+  gpio127: io
+  gpio128: io
+  qspi_cs_b: o
+  qspi_dq0: o
+  qspi_dq1: i
+  qspi_dq2: o
+  qspi_dq3: o
+intr: {}
+scripts:
+  linux: &id001
+    synth:
+      note: Build complete RTL using the native NextMicon OSS FPGA builder
+      cmd: micon fpga build --board grape --top top --source hardware/top.v --out
+        build/fpga
+      src:
+      - hardware/top.v
+      out:
+      - build/fpga/hardware.bit
+    blink:
+      note: Build the supplied board example
+      cmd: micon fpga build --board grape --source platform/hardware/blink.v --out
+        build/blink
+      src:
+      - platform/hardware/blink.v
+      out:
+      - build/blink/hardware.bit
+    program:
+      note: Load FPGA SRAM through an explicitly selected external JTAG cable
+      cmd: ': "${JTAG_CABLE:?Set JTAG_CABLE to your external probe}"
+
+        micon fpga program --board grape --cable "$JTAG_CABLE" --bitstream build/fpga/hardware.bit'
+      src:
+      - build/fpga/hardware.bit
+    bootloader:
+      note: Build USB recovery image (default USB ID is private-testing only)
+      cmd: micon fpga bootloader --board grape --out build/bootloader
+      out:
+      - build/bootloader/hardware.bit
+      - build/bootloader/bootloader.json
+    install_bootloader:
+      note: One-time external JTAG installation of recovery into SPI flash
+      cmd: ': "${JTAG_CABLE:?Set JTAG_CABLE to your external probe}"
+
+        micon fpga install-bootloader --board grape --cable "$JTAG_CABLE" --bitstream
+        build/bootloader/hardware.bit'
+      src:
+      - build/bootloader/hardware.bit
+      - build/bootloader/bootloader.json
+    usb:
+      note: Persist and verify the user image over USB-C CDC; enter recovery first
+      cmd: ': "${USB_PORT:?Set USB_PORT to the recovery CDC serial port}"
+
+        micon fpga usb --board grape --port "$USB_PORT" --bitstream build/fpga/hardware.bit'
+      src:
+      - build/fpga/hardware.bit
+    flash:
+      note: Persist the user slot through external JTAG; install recovery first
+      cmd: ': "${JTAG_CABLE:?Set JTAG_CABLE to your external probe}"
+
+        micon fpga program --board grape --flash --cable "$JTAG_CABLE" --bitstream
+        build/fpga/hardware.bit'
+      src:
+      - build/fpga/hardware.bit
+  macos: *id001
+  windows: {}

@@ -1,0 +1,90 @@
+name: nextmicon-cherry
+fpga: ICE40HX8K-BG121
+cpu: picorv32
+clock: 48000000
+ioports:
+  clk: &id001
+  - i
+  rstn: *id001
+  usb_pullup: &id002
+  - o
+  led0: *id002
+  led1: *id002
+  led2: *id002
+  led3: *id002
+  gpio1: &id003
+  - i
+  - o
+  - io
+  gpio2: *id003
+  gpio3: *id003
+  gpio4: *id003
+  gpio5: *id003
+  gpio6: *id003
+  gpio7: *id003
+  gpio8: *id003
+  gpio9: *id003
+  gpio10: *id003
+  gpio11: *id003
+  gpio12: *id003
+  gpio13: *id003
+  gpio14: *id003
+  gpio15: *id003
+  gpio16: *id003
+  gpio17: *id003
+  gpio18: *id003
+  gpio19: *id003
+  gpio20: *id003
+  gpio21: *id003
+  gpio22: *id003
+  gpio23: *id003
+  gpio24: *id003
+  gpio25: *id003
+  gpio26: *id003
+  gpio27: *id003
+  gpio28: *id003
+  gpio29: *id003
+  gpio30: *id003
+  gpio31: *id003
+  gpio32: *id003
+  gpio33: *id003
+  gpio34: *id003
+  gpio35: *id003
+  gpio36: *id003
+  gpio37: *id003
+  gpio38: *id003
+  gpio39: *id003
+  gpio40: *id003
+  gpio41: *id003
+  gpio42: *id003
+  gpio43: *id003
+  gpio44: *id003
+  gpio45: *id003
+  gpio46: *id003
+  gpio47: *id003
+  gpio48: *id003
+  gpio49: *id003
+  gpio50: *id003
+  gpio51: *id003
+  gpio52: *id003
+  gpio53: *id003
+  gpio54: *id003
+  gpio55: *id003
+  gpio56: *id003
+  gpio57: *id003
+  gpio58: *id003
+  gpio59: *id003
+  gpio60: *id003
+  gpio61: *id003
+  gpio62: *id003
+  gpio63: *id003
+  gpio64: *id003
+memmap:
+  user:
+    area:
+    - 268435456
+    - 536870911
+    note: User peripherals
+    role:
+    - io
+interrupts: {}

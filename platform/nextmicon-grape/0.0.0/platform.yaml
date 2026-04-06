@@ -1,0 +1,556 @@
+clock: 100000000
+cpu: picorv32
+fpga: xc7s50csga324-1
+interrupts: {}
+ioports:
+  clk:
+  - i
+  default_user:
+  - i
+  gpio1:
+  - i
+  - o
+  - io
+  gpio10:
+  - i
+  - o
+  - io
+  gpio100:
+  - i
+  - o
+  - io
+  gpio101:
+  - i
+  - o
+  - io
+  gpio102:
+  - i
+  - o
+  - io
+  gpio103:
+  - i
+  - o
+  - io
+  gpio104:
+  - i
+  - o
+  - io
+  gpio105:
+  - i
+  - o
+  - io
+  gpio106:
+  - i
+  - o
+  - io
+  gpio107:
+  - i
+  - o
+  - io
+  gpio108:
+  - i
+  - o
+  - io
+  gpio109:
+  - i
+  - o
+  - io
+  gpio11:
+  - i
+  - o
+  - io
+  gpio110:
+  - i
+  - o
+  - io
+  gpio111:
+  - i
+  - o
+  - io
+  gpio112:
+  - i
+  - o
+  - io
+  gpio113:
+  - i
+  - o
+  - io
+  gpio114:
+  - i
+  - o
+  - io
+  gpio115:
+  - i
+  - o
+  - io
+  gpio116:
+  - i
+  - o
+  - io
+  gpio117:
+  - i
+  - o
+  - io
+  gpio118:
+  - i
+  - o
+  - io
+  gpio119:
+  - i
+  - o
+  - io
+  gpio12:
+  - i
+  - o
+  - io
+  gpio120:
+  - i
+  - o
+  - io
+  gpio121:
+  - i
+  - o
+  - io
+  gpio122:
+  - i
+  - o
+  - io
+  gpio123:
+  - i
+  - o
+  - io
+  gpio124:
+  - i
+  - o
+  - io
+  gpio125:
+  - i
+  - o
+  - io
+  gpio126:
+  - i
+  - o
+  - io
+  gpio127:
+  - i
+  - o
+  - io
+  gpio128:
+  - i
+  - o
+  - io
+  gpio13:
+  - i
+  - o
+  - io
+  gpio14:
+  - i
+  - o
+  - io
+  gpio15:
+  - i
+  - o
+  - io
+  gpio16:
+  - i
+  - o
+  - io
+  gpio17:
+  - i
+  - o
+  - io
+  gpio18:
+  - i
+  - o
+  - io
+  gpio19:
+  - i
+  - o
+  - io
+  gpio2:
+  - i
+  - o
+  - io
+  gpio20:
+  - i
+  - o
+  - io
+  gpio21:
+  - i
+  - o
+  - io
+  gpio22:
+  - i
+  - o
+  - io
+  gpio23:
+  - i
+  - o
+  - io
+  gpio24:
+  - i
+  - o
+  - io
+  gpio25:
+  - i
+  - o
+  - io
+  gpio26:
+  - i
+  - o
+  - io
+  gpio27:
+  - i
+  - o
+  - io
+  gpio28:
+  - i
+  - o
+  - io
+  gpio29:
+  - i
+  - o
+  - io
+  gpio3:
+  - i
+  - o
+  - io
+  gpio30:
+  - i
+  - o
+  - io
+  gpio31:
+  - i
+  - o
+  - io
+  gpio32:
+  - i
+  - o
+  - io
+  gpio33:
+  - i
+  - o
+  - io
+  gpio34:
+  - i
+  - o
+  - io
+  gpio35:
+  - i
+  - o
+  - io
+  gpio36:
+  - i
+  - o
+  - io
+  gpio37:
+  - i
+  - o
+  - io
+  gpio38:
+  - i
+  - o
+  - io
+  gpio39:
+  - i
+  - o
+  - io
+  gpio4:
+  - i
+  - o
+  - io
+  gpio40:
+  - i
+  - o
+  - io
+  gpio41:
+  - i
+  - o
+  - io
+  gpio42:
+  - i
+  - o
+  - io
+  gpio43:
+  - i
+  - o
+  - io
+  gpio44:
+  - i
+  - o
+  - io
+  gpio45:
+  - i
+  - o
+  - io
+  gpio46:
+  - i
+  - o
+  - io
+  gpio47:
+  - i
+  - o
+  - io
+  gpio48:
+  - i
+  - o
+  - io
+  gpio49:
+  - i
+  - o
+  - io
+  gpio5:
+  - i
+  - o
+  - io
+  gpio50:
+  - i
+  - o
+  - io
+  gpio51:
+  - i
+  - o
+  - io
+  gpio52:
+  - i
+  - o
+  - io
+  gpio53:
+  - i
+  - o
+  - io
+  gpio54:
+  - i
+  - o
+  - io
+  gpio55:
+  - i
+  - o
+  - io
+  gpio56:
+  - i
+  - o
+  - io
+  gpio57:
+  - i
+  - o
+  - io
+  gpio58:
+  - i
+  - o
+  - io
+  gpio59:
+  - i
+  - o
+  - io
+  gpio6:
+  - i
+  - o
+  - io
+  gpio60:
+  - i
+  - o
+  - io
+  gpio61:
+  - i
+  - o
+  - io
+  gpio62:
+  - i
+  - o
+  - io
+  gpio63:
+  - i
+  - o
+  - io
+  gpio64:
+  - i
+  - o
+  - io
+  gpio65:
+  - i
+  - o
+  - io
+  gpio66:
+  - i
+  - o
+  - io
+  gpio67:
+  - i
+  - o
+  - io
+  gpio68:
+  - i
+  - o
+  - io
+  gpio69:
+  - i
+  - o
+  - io
+  gpio7:
+  - i
+  - o
+  - io
+  gpio70:
+  - i
+  - o
+  - io
+  gpio71:
+  - i
+  - o
+  - io
+  gpio72:
+  - i
+  - o
+  - io
+  gpio73:
+  - i
+  - o
+  - io
+  gpio74:
+  - i
+  - o
+  - io
+  gpio75:
+  - i
+  - o
+  - io
+  gpio76:
+  - i
+  - o
+  - io
+  gpio77:
+  - i
+  - o
+  - io
+  gpio78:
+  - i
+  - o
+  - io
+  gpio79:
+  - i
+  - o
+  - io
+  gpio8:
+  - i
+  - o
+  - io
+  gpio80:
+  - i
+  - o
+  - io
+  gpio81:
+  - i
+  - o
+  - io
+  gpio82:
+  - i
+  - o
+  - io
+  gpio83:
+  - i
+  - o
+  - io
+  gpio84:
+  - i
+  - o
+  - io
+  gpio85:
+  - i
+  - o
+  - io
+  gpio86:
+  - i
+  - o
+  - io
+  gpio87:
+  - i
+  - o
+  - io
+  gpio88:
+  - i
+  - o
+  - io
+  gpio89:
+  - i
+  - o
+  - io
+  gpio9:
+  - i
+  - o
+  - io
+  gpio90:
+  - i
+  - o
+  - io
+  gpio91:
+  - i
+  - o
+  - io
+  gpio92:
+  - i
+  - o
+  - io
+  gpio93:
+  - i
+  - o
+  - io
+  gpio94:
+  - i
+  - o
+  - io
+  gpio95:
+  - i
+  - o
+  - io
+  gpio96:
+  - i
+  - o
+  - io
+  gpio97:
+  - i
+  - o
+  - io
+  gpio98:
+  - i
+  - o
+  - io
+  gpio99:
+  - i
+  - o
+  - io
+  led0:
+  - o
+  led1:
+  - o
+  qspi_cs_b:
+  - o
+  qspi_dq0:
+  - o
+  qspi_dq1:
+  - i
+  qspi_dq2:
+  - o
+  qspi_dq3:
+  - o
+  rstn:
+  - i
+  usb_dn:
+  - i
+  - o
+  - io
+  usb_dp:
+  - i
+  - o
+  - io
+  usb_pullup:
+  - o
+memmap:
+  user:
+    area:
+    - 268435456
+    - 536870911
+    note: User peripherals
+    role:
+    - io
+name: nextmicon-grape

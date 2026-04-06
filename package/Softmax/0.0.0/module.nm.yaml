@@ -1,0 +1,18 @@
+target:
+  bus: 'true'
+params: {}
+elems:
+  in:
+    type: PortIn
+    bit: 288
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  out:
+    type: PortOut
+    bit: 288
+    pos:
+    - 400.0
+    - 0.0
+    flip: false
