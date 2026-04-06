@@ -1,0 +1,90 @@
+// SPISlave
+// Receives data from an SPI master and sends back a response byte.
+//
+//         : _  :_   _   _   _   _   _   _  :
+// clk     :  |_| |_| |_| |_| |_| |_| |_| |_|
+//         :    :   :                   :   :
+// ss      : ---\___________________________/---
+//         :    :___:_______     _______:   :
+// sclk    : ___/   \___/   \...\___/   \______
+//         :    :___:_______     _______:   :
+// mosi    : ---<_[7]__X_[6]___X...X_[0]__>----
+//         :    :___:_______     _______:   :
+// miso    : ---<_[7]__X_[6]___X...X_[0]__>----
+
+module SPISlave #(
+    param CPOL: u32 = 0,
+    param CPHA: u32 = 0,
+) (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    addr: input logic<32>,
+    wstrb: input logic<4>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    sclk: input logic,
+    mosi: input logic,
+    miso: output logic,
+    ss: input logic,
+) {
+
+    var sclk_prev: logic;
+    var bit_count: logic<3>;
+    var rx_shift: logic<8>;
+    var tx_shift: logic<8>;
+    var rx_reg: logic<8>;
+    var tx_reg: logic<8>;
+    var done: logic;
+
+    always_ff {
+        if_reset {
+            sclk_prev = 0;
+            bit_count = 0;
+            rx_shift  = 0;
+            tx_shift  = 0;
+            rx_reg    = 0;
+            tx_reg    = 0;
+            done      = 0;
+            miso      = 0;
+        } else {
+            // Bus interface
+            ready = valid;
+            rdata = {24'b0, rx_reg};
+            if valid && |wstrb {
+                tx_reg = wdata[7:0];
+            }
+
+            if ss {
+                // Not selected — reset
+                bit_count = 0;
+                sclk_prev = sclk;
+                miso      = tx_reg[7];
+                tx_shift  = tx_reg;
+            } else {
+                // Rising edge of sclk: sample MOSI
+                if sclk && !sclk_prev {
+                    rx_shift = {rx_shift[6:0], mosi};
+                    bit_count = bit_count + 1;
+                }
+                // Falling edge of sclk: shift out MISO
+                if !sclk && sclk_prev {
+                    tx_shift = {tx_shift[6:0], 1'b0};
+                    miso     = tx_shift[7];
+                }
+                // Byte complete
+                if bit_count == 3'd0 && done {
+                    rx_reg = rx_shift;
+                    done   = 0;
+                }
+                if bit_count == 3'd7 {
+                    done = 1;
+                }
+                sclk_prev = sclk;
+            }
+        }
+    }
+}

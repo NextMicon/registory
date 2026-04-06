@@ -1,0 +1,169 @@
+// I2CSlave
+// Responds to I2C master transactions as a slave device.
+//
+// Supports 7-bit addressing. The slave address is set via the SLAVE_ADDR parameter.
+// Uses separate SDA input/output/direction signals (no tri-state in Veryl).
+
+module I2CSlave #(
+    param SLAVE_ADDR: logic<7> = 7'h50,
+) (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    addr: input logic<32>,
+    wstrb: input logic<4>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    scl: input logic,
+    sda_rx: input logic,
+    sda_tx: output logic,
+    sda_io: output logic,   // direction: 0 = input (hi-z), 1 = output (drive)
+) {
+
+    var scl_prev: logic;
+    var sda_prev: logic;
+    var bit_count: logic<4>;
+    var shift_reg: logic<8>;
+    var rx_reg: logic<8>;
+    var tx_reg: logic<8>;
+    var state: logic<3>;
+    var rw_bit: logic;
+    var addressed_flag: logic;
+
+    const IDLE     : logic<3> = 3'd0;
+    const ADDR_BITS: logic<3> = 3'd1;
+    const ADDR_ACK : logic<3> = 3'd2;
+    const RX_DATA  : logic<3> = 3'd3;
+    const RX_ACK   : logic<3> = 3'd4;
+    const TX_DATA  : logic<3> = 3'd5;
+    const TX_ACK   : logic<3> = 3'd6;
+
+    always_ff {
+        if_reset {
+            scl_prev       = 1;
+            sda_prev       = 1;
+            bit_count      = 0;
+            shift_reg      = 0;
+            rx_reg         = 0;
+            tx_reg         = 0;
+            state          = IDLE;
+            rw_bit         = 0;
+            sda_tx         = 1;
+            sda_io         = 0;
+            addressed_flag = 0;
+        } else {
+            // Bus interface
+            ready = valid;
+            rdata = {23'b0, addressed_flag, rx_reg};
+            if valid && |wstrb {
+                tx_reg = wdata[7:0];
+            }
+
+            // START condition: SDA falls while SCL is high
+            if scl_prev && scl && sda_prev && !sda_rx {
+                state     = ADDR_BITS;
+                bit_count = 0;
+                shift_reg = 0;
+                sda_io    = 0;
+            }
+
+            // STOP condition: SDA rises while SCL is high
+            if scl_prev && scl && !sda_prev && sda_rx {
+                state          = IDLE;
+                sda_io         = 0;
+                addressed_flag = 0;
+            }
+
+            // Rising edge of SCL: sample data
+            if scl && !scl_prev {
+                case state {
+                    ADDR_BITS: {
+                        shift_reg = {shift_reg[6:0], sda_rx};
+                        bit_count = bit_count + 1;
+                        if bit_count == 4'd7 {
+                            rw_bit = sda_rx;
+                        }
+                        if bit_count == 4'd8 {
+                            if shift_reg[7:1] == SLAVE_ADDR {
+                                addressed_flag = 1;
+                                state          = ADDR_ACK;
+                            } else {
+                                state = IDLE;
+                            }
+                        }
+                    }
+                    RX_DATA: {
+                        shift_reg = {shift_reg[6:0], sda_rx};
+                        bit_count = bit_count + 1;
+                        if bit_count == 4'd8 {
+                            rx_reg = shift_reg;
+                            state  = RX_ACK;
+                        }
+                    }
+                    TX_ACK: {
+                        if sda_rx {
+                            // NACK — master done reading
+                            state  = IDLE;
+                            sda_io = 0;
+                        } else {
+                            // ACK — send next byte
+                            state     = TX_DATA;
+                            bit_count = 0;
+                            shift_reg = tx_reg;
+                        }
+                    }
+                    default: {}
+                }
+            }
+
+            // Falling edge of SCL: drive data
+            if !scl && scl_prev {
+                case state {
+                    ADDR_ACK: {
+                        // Drive ACK (low)
+                        sda_tx = 0;
+                        sda_io = 1;
+                        if rw_bit {
+                            // Master read: prepare to transmit
+                            state     = TX_DATA;
+                            bit_count = 0;
+                            shift_reg = tx_reg;
+                        } else {
+                            state     = RX_DATA;
+                            bit_count = 0;
+                        }
+                    }
+                    RX_ACK: {
+                        // Drive ACK (low)
+                        sda_tx    = 0;
+                        sda_io    = 1;
+                        state     = RX_DATA;
+                        bit_count = 0;
+                    }
+                    TX_DATA: {
+                        sda_tx    = shift_reg[7];
+                        sda_io    = 1;
+                        shift_reg = {shift_reg[6:0], 1'b0};
+                        bit_count = bit_count + 1;
+                        if bit_count == 4'd8 {
+                            sda_io = 0;  // Release SDA for ACK/NACK from master
+                            state  = TX_ACK;
+                        }
+                    }
+                    RX_DATA: {
+                        sda_io = 0;  // Release bus for master to drive
+                    }
+                    default: {
+                        sda_io = 0;
+                    }
+                }
+            }
+
+            scl_prev = scl;
+            sda_prev = sda_rx;
+        }
+    }
+}

@@ -1,0 +1,45 @@
+module Counter (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    wstrb: input logic<4>,
+    addr: input logic<32>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    cnt: output logic<32>,
+    of: output logic,
+) {
+
+    var max: logic<32>;
+
+    always_ff {
+        if_reset {
+            max = 0;
+        } else {
+            ready = valid;
+            rdata = max;
+            if wstrb[0] { max[7:0] = wdata[7:0]; }
+            if wstrb[1] { max[15:8] = wdata[15:8]; }
+            if wstrb[2] { max[23:16] = wdata[23:16]; }
+            if wstrb[3] { max[31:24] = wdata[31:24]; }
+        }
+    }
+
+    always_ff {
+        if_reset {
+            cnt = 0;
+            of  = 0;
+        } else {
+            if cnt == max {
+                cnt = 32'b0;
+                of  = 1;
+            } else {
+                cnt = cnt + 1;
+                of  = 0;
+            }
+        }
+    }
+}

@@ -1,0 +1,6 @@
+ports:
+  scl: {bit: 1, direct: in, side: right}
+  sda_io: {bit: 1, direct: out, side: right}
+  sda_tx: {bit: 1, direct: out, side: right}
+  sda_rx: {bit: 1, direct: in, side: right}
+params: {}

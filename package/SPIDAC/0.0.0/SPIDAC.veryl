@@ -1,0 +1,126 @@
+// SPI DAC MPC49x1
+//       : _  :_   _   _   _   _   _   _  :_   _   _   _   _
+// clk   :  |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_
+//       :    :___           _:__         :           :
+// wstrb : __|:   |_________| :  |________:___________:________
+//       :    :               x           :           :
+// state : w  | sending                   | ending    | waiting
+//       :    :                           :           :
+// cnt   : -  | 0     | 1     |...| 15    | 0 | 1 | 2 :
+//       : ___:   :   :                   :___________:________
+// cs    :    |___:___:___________________|           :
+//       :    :    ___:    ___         ___:           :
+// scl   : ___:___|   |___|   |...|___|   |___________:________
+//       :    :   :   :                   :           :
+// sdi   : -  | 0     | [14]  |...| [0]   : -         :
+//       : ___:___:___:___________________:___        :________
+// ldac  :    :   :   :                   :   |_______|
+//       :    :   :   :                   :           :
+//      [I]  [S] [A] [B]                 [E][E'][E''][F]
+
+// Transmission starts by wstrb or sample.
+// When triggered by wstrb, sends 2 bytes from memory as-is.
+// When triggered by sample, sends 12-bit in input with upper 4 bits from internal register.
+
+module SPIDAC (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    addr: input logic<32>,
+    wstrb: input logic<4>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    sample: input logic,
+    din: input logic<12>,
+
+    cs: output logic,
+    scl: output logic,
+    sdi: output logic,
+    ldac: output logic,
+) {
+
+    var dsend: logic<16>;
+    var state: logic<3>;
+    var cnt: logic<4>;
+
+    always_ff {
+        if_reset {  // [I] Initial state
+            state = 3'b001;
+            dsend = {
+                1'b0,
+                1'b1,  // BUF
+                1'b1,  // GA
+                1'b1,  // SHDN
+                12'b0
+            };
+            cs   = 1;
+            scl  = 0;
+            sdi  = 0;
+            ldac = 1;
+        } else {
+            ready = valid;
+            rdata = {16'b0, dsend};
+            case state {
+                3'b001: {
+                    if |wstrb || sample {  // [S] Start sending
+                        // Latch send data
+                        if |wstrb {
+                            dsend = wdata[15:0];
+                        } else {
+                            dsend = {dsend[15:12], din};
+                        }
+                        // Start sending
+                        state = 3'b010;
+                        cnt   = 0;
+                        cs    = 0;
+                        scl   = 0;
+                        if |wstrb {
+                            sdi = wdata[15];
+                        } else {
+                            sdi = dsend[15];
+                        }
+                    }
+                }
+                3'b010: {
+                    case scl {
+                        1'b0: {  // [A]
+                            scl = 1;
+                        }
+                        1'b1: {
+                            if cnt == 4'd15 {  // [E] ending
+                                state = 3'b100;
+                                cs    = 1;
+                                cnt   = 0;
+                            } else {  // [B]
+                                scl = 0;
+                                cnt = cnt + 1;
+                                sdi = dsend[14 - cnt];
+                            }
+                        }
+                        default: {}
+                    }
+                }
+                3'b100: {
+                    case cnt {
+                        4'd0: {
+                            cnt  = cnt + 1;
+                            ldac = 0;
+                        }
+                        4'd1: {
+                            cnt = cnt + 1;
+                        }
+                        4'd2: {
+                            state = 3'b001;
+                            ldac  = 1;
+                        }
+                        default: {}
+                    }
+                }
+                default: {}
+            }
+        }
+    }
+}

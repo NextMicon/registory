@@ -1,0 +1,25 @@
+ports:
+  w_trig: {bit: 1, direct: out, side: left}
+  w_valid: {bit: 1, direct: in, side: left}
+  w_x: {bit: 8, direct: in, side: left}
+  w_y: {bit: 8, direct: in, side: left}
+  w_z: {bit: 8, direct: in, side: left}
+  a_trig: {bit: 1, direct: out, side: left}
+  a_valid: {bit: 1, direct: in, side: left}
+  a_x: {bit: 8, direct: in, side: left}
+  a_y: {bit: 8, direct: in, side: left}
+  a_z: {bit: 8, direct: in, side: left}
+  gnss_trig: {bit: 1, direct: out, side: left}
+  gnss_valid: {bit: 1, direct: in, side: left}
+  gnss_lat: {bit: 8, direct: in, side: left}
+  gnss_lng: {bit: 8, direct: in, side: left}
+  x: {bit: 8, direct: out, side: right}
+  y: {bit: 8, direct: out, side: right}
+  z: {bit: 8, direct: out, side: right}
+  vx: {bit: 8, direct: out, side: right}
+  vy: {bit: 8, direct: out, side: right}
+  vz: {bit: 8, direct: out, side: right}
+  ax: {bit: 8, direct: out, side: right}
+  ay: {bit: 8, direct: out, side: right}
+  az: {bit: 8, direct: out, side: right}
+params: {}

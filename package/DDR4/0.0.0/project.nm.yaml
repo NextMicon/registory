@@ -1,0 +1,9 @@
+ports:
+  reset_n: {bit: 1, direct: out, side: left}
+  cs_n: {bit: 1, direct: out, side: left}
+  clk_en: {bit: 1, direct: out, side: left}
+  clk_t: {bit: 1, direct: out, side: left}
+  clk_n: {bit: 1, direct: out, side: left}
+  dq: {bit: 1, direct: out, side: left}
+  dqs: {bit: 1, direct: out, side: left}
+params: {}

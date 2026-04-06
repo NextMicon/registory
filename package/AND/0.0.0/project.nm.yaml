@@ -1,0 +1,5 @@
+ports:
+  in1: {bit: 1, direct: in, side: left}
+  in2: {bit: 1, direct: in, side: left}
+  out: {bit: 1, direct: in, side: right}
+params: {}

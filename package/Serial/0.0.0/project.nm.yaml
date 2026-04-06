@@ -1,0 +1,4 @@
+ports:
+  rx: {bit: 1, direct: in, side: right}
+  tx: {bit: 1, direct: out, side: right}
+params: {}

@@ -1,0 +1,7 @@
+ports:
+  din: {bit: 12, direct: in, side: left}
+  sample: {bit: 1, direct: in, side: left}
+  cs: {bit: 1, direct: out, side: right}
+  scl: {bit: 1, direct: out, side: right}
+  sdi: {bit: 1, direct: out, side: right}
+  ldac: {bit: 1, direct: out, side: right}

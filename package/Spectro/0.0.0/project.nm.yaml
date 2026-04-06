@@ -1,0 +1,7 @@
+ports:
+  in: {bit: 12, direct: in, side: left}
+  sample: {bit: 1, direct: in, side: left}
+  done: {bit: 1, direct: out, side: right}
+params: {}
+size: [240, 80]
+textX: 0

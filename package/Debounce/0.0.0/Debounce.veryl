@@ -1,0 +1,51 @@
+module Debounce #(
+    param DELAY_CNT: u32 = 128,
+) (
+    clk: input clock,
+    rst: input reset,
+
+    in: input logic,
+    rise: output logic,
+    out: output logic,
+    fall: output logic,
+) {
+
+    var cnt: logic<8>;
+    var shift: logic<2>;
+
+    // Shift Reg to Synchronize input
+    always_ff {
+        if_reset {
+            shift = 2'b00;
+        } else {
+            shift = {shift[0], in};
+        }
+    }
+
+    always_ff {
+        if_reset {
+            cnt  = 0;
+            rise = 0;
+            out  = 0;
+            fall = 0;
+        } else {
+            if cnt == 0 {  // Waiting Edge
+                if shift == 2'b01 {  // Detect Rising Edge
+                    rise = 1;
+                    fall = 0;
+                    out  = 1;
+                    cnt  = DELAY_CNT - 1;
+                } else if shift == 2'b10 {  // Detect Falling Edge
+                    rise = 0;
+                    fall = 1;
+                    out  = 0;
+                    cnt  = DELAY_CNT - 1;
+                }
+            } else {  // Ignore Change until DELAY_CNT * clk
+                rise = 0;
+                fall = 0;
+                cnt  = cnt - 1;
+            }
+        }
+    }
+}

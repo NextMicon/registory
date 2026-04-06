@@ -1,0 +1,152 @@
+clk: 16000000
+
+mem:
+  ram: [0, 8192]
+  flash: [0x00050000, 0x00080000]
+  user: [0x00000000, 0x00000000]
+
+pin:
+  led: o
+  pin01: io
+  pin02: io
+  pin03: io
+  pin04: io
+  pin05: io
+  pin06: io
+  pin07: io
+  pin08: io
+  pin09: io
+  pin10: io
+  pin11: io
+  pin12: io
+  pin13: io
+  pin14: io
+  pin15: io
+  pin16: io
+  pin17: io
+  pin18: io
+  pin19: io
+  pin20: io
+  pin21: io
+  pin22: io
+  pin23: io
+  pin24: io
+  pin25: io
+  pin26: io
+  pin27: io
+  pin28: io
+  pin29: io
+  pin30: io
+  pin31: io
+
+intr:
+  irq2: ""
+
+build:
+  linux:
+    transpile:
+      cmd: $MICON_BIN transpile
+      src:
+        - project.nm.yaml
+        - package/**/*.sv
+        - package/**/*.veryl
+      dst:
+        - $MICON_BUILD_DIR/main.sv
+        - $MICON_BUILD_DIR/read_sv.ys
+        - software/micon.rs
+
+    synthesis:
+      cmd: yosys -s $MICON_BUILD_DIR/read_sv.ys -p "synth_ice40 -top top -json $MICON_BUILD_DIR/out.json"
+      src:
+        - $MICON_BUILD_DIR/read_sv.ys
+        - $MICON_BUILD_DIR/*.sv
+        - package/**/*.sv
+      dst:
+        - $MICON_BUILD_DIR/out.json
+
+    pnr:
+      cmd: "nextpnr-ice40 --lp8k --package cm81 --pcf $MICON_PLATFORM_DIR/hardware/pin.pcf --json $MICON_BUILD_DIR/out.json --asc $MICON_BUILD_DIR/out.asc"
+      src:
+        - $MICON_BUILD_DIR/out.json
+        - constraints.pcf
+      dst:
+        - $MICON_BUILD_DIR/out.asc
+
+    bitstream:
+      cmd: "icepack $MICON_BUILD_DIR/out.asc $MICON_BUILD_DIR/out.bin"
+      src:
+        - $MICON_BUILD_DIR/out.asc
+      dst:
+        - $MICON_BUILD_DIR/out.bin
+
+    fw-compile:
+      cmd: "rustc --edition 2021 --target riscv32im-unknown-none-elf -C opt-level=s -C panic=abort --emit=obj -o $MICON_BUILD_DIR/fw.o software/main.rs"
+      src:
+        - software/*.rs
+      dst:
+        - $MICON_BUILD_DIR/fw.o
+
+    fw-link:
+      cmd: "riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -nostartfiles -Wl,-Bstatic,-T,$MICON_PLATFORM_DIR/software/sections.lds,--strip-debug,--no-warn-mismatch -O3 -ffreestanding -nostdlib -o $MICON_BUILD_DIR/fw.elf $MICON_PLATFORM_DIR/software/start.S $MICON_BUILD_DIR/fw.o"
+      src:
+        - $MICON_BUILD_DIR/fw.o
+        - $MICON_PLATFORM_DIR/software/start.S
+        - $MICON_PLATFORM_DIR/software/sections.lds
+      dst:
+        - $MICON_BUILD_DIR/fw.elf
+
+    fw-bin:
+      cmd: "riscv64-unknown-elf-objcopy -O binary $MICON_BUILD_DIR/fw.elf $MICON_BUILD_DIR/fw.bin && truncate -s %256 $MICON_BUILD_DIR/fw.bin"
+      src:
+        - $MICON_BUILD_DIR/fw.elf
+      dst:
+        - $MICON_BUILD_DIR/fw.bin
+
+    flash:
+      cmd: "tinyprog -p $MICON_BUILD_DIR/out.bin -u $MICON_BUILD_DIR/fw.bin"
+      src:
+        - $MICON_BUILD_DIR/out.bin
+        - $MICON_BUILD_DIR/fw.bin
+
+  windows:
+    transpile:
+      cmd: "%MICON_BIN% transpile"
+      src:
+        - project.nm.yaml
+        - package\**\*.sv
+        - package\**\*.veryl
+      dst:
+        - "%MICON_BUILD_DIR%\\main.sv"
+        - "%MICON_BUILD_DIR%\\read_sv.ys"
+        - sw\micon.rs
+
+    synthesis:
+      cmd: yosys -s %MICON_BUILD_DIR%\read_sv.ys -p "synth_ice40 -top top -json %MICON_BUILD_DIR%\out.json"
+      src:
+        - "%MICON_BUILD_DIR%\\read_sv.ys"
+        - "%MICON_BUILD_DIR%\\*.sv"
+        - package\**\*.sv
+      dst:
+        - "%MICON_BUILD_DIR%\\out.json"
+
+    pnr:
+      cmd: nextpnr-ice40 --lp8k --package cm81 --pcf $MICON_PLATFORM_DIR/hardware/pin.pcf --json %MICON_BUILD_DIR%\out.json --asc %MICON_BUILD_DIR%\out.asc
+      src:
+        - "%MICON_BUILD_DIR%\\out.json"
+        - constraints.pcf
+      dst:
+        - "%MICON_BUILD_DIR%\\out.asc"
+
+    bitstream:
+      cmd: icepack %MICON_BUILD_DIR%\out.asc %MICON_BUILD_DIR%\out.bin
+      src:
+        - "%MICON_BUILD_DIR%\\out.asc"
+      dst:
+        - "%MICON_BUILD_DIR%\\out.bin"
+
+    flash:
+      cmd: tinyprog -p %MICON_BUILD_DIR%\out.bin
+      src:
+        - "%MICON_BUILD_DIR%\\out.bin"
+
+  macos: {}

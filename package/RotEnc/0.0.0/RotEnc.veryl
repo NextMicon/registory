@@ -1,0 +1,19 @@
+// RotEnc - Rotary Encoder
+
+module RotEnc #(
+) (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    wstrb: input logic<4>,
+    addr: input logic<32>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    a: input logic,
+    b: input logic,
+    z: input logic,
+) {
+}

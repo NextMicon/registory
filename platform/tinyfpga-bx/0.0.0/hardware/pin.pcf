@@ -1,0 +1,57 @@
+# TinyFPGA BX: https://github.com/tinyfpga/TinyFPGA-BX/
+
+# 16MHz clock
+set_io clk B2
+
+# SPI flash interface on bottom of board
+set_io flash_csb F7
+set_io flash_clk G7
+set_io flash_io0 G6
+set_io flash_io1 H7
+set_io flash_io2 H4
+set_io flash_io3 J8
+
+# USB
+set_io --warn-no-port usb_pu A3
+set_io --warn-no-port usb_dp B4
+set_io --warn-no-port usb_dn A4
+
+# LED
+set_io --warn-no-port led B3
+
+# Left side of board
+set_io --warn-no-port pin01 A2
+set_io --warn-no-port pin02 A1
+set_io --warn-no-port pin03 B1
+set_io --warn-no-port pin04 C2
+set_io --warn-no-port pin05 C1
+set_io --warn-no-port pin06 D2
+set_io --warn-no-port pin07 D1
+set_io --warn-no-port pin08 E2
+set_io --warn-no-port pin09 E1
+set_io --warn-no-port pin10 G2
+set_io --warn-no-port pin11 H1
+set_io --warn-no-port pin12 J1
+set_io --warn-no-port pin13 H2
+
+# Right side of board
+set_io --warn-no-port pin14 H9
+set_io --warn-no-port pin15 D9
+set_io --warn-no-port pin16 D8
+set_io --warn-no-port pin17 C9
+set_io --warn-no-port pin18 A9
+set_io --warn-no-port pin19 B8
+set_io --warn-no-port pin20 A8
+set_io --warn-no-port pin21 B7
+set_io --warn-no-port pin22 A7
+set_io --warn-no-port pin23 B6
+set_io --warn-no-port pin24 A6
+
+# General purpose pins on bottom of board
+set_io --warn-no-port pin25 G1
+set_io --warn-no-port pin26 J3
+set_io --warn-no-port pin27 J4
+set_io --warn-no-port pin28 G9
+set_io --warn-no-port pin29 J9
+set_io --warn-no-port pin30 E8
+set_io --warn-no-port pin31 J2

@@ -1,0 +1,77 @@
+clk: 100000000
+
+mem:
+  ram: [0, 262144]
+  flash: [0x00100000, 0x00200000]
+
+pin:
+  pmod_1: io
+  pmod_2: io
+  pmod_3: io
+  pmod_4: io
+  pmod_5: io
+  pmod_6: io
+  pmod_7: io
+  pmod_8: io
+  fan_en: o
+
+intr: {}
+
+build:
+  linux:
+    transpile:
+      cmd: $MICON_BIN transpile
+      src:
+        - project.nm.yaml
+        - package/**/*.sv
+        - package/**/*.veryl
+      dst:
+        - $MICON_BUILD_DIR/main.sv
+        - $MICON_BUILD_DIR/read_sv.ys
+        - software/micon.rs
+
+    synth:
+      cmd: >-
+        vivado -mode batch -nojournal -nolog -notrace -source $MICON_PLATFORM_DIR/hardware/vivado_build.tcl
+        -tclargs $MICON_BUILD_DIR xck26-sfvc784-2LV-c constraints.xdc
+      src:
+        - $MICON_BUILD_DIR/*.sv
+        - package/**/*.sv
+        - constraints.xdc
+      dst:
+        - $MICON_BUILD_DIR/out.bit
+
+    flash:
+      cmd: "openFPGALoader -b kv260 $MICON_BUILD_DIR/out.bit"
+      src:
+        - $MICON_BUILD_DIR/out.bit
+
+  windows:
+    transpile:
+      cmd: '%MICON_BIN% transpile'
+      src:
+        - project.nm.yaml
+        - package\**\*.sv
+        - package\**\*.veryl
+      dst:
+        - "%MICON_BUILD_DIR%\\main.sv"
+        - "%MICON_BUILD_DIR%\\read_sv.ys"
+        - software\micon.rs
+
+    synth:
+      cmd: >-
+        vivado -mode batch -nojournal -nolog -notrace -source %MICON_PLATFORM_DIR%\hardware\vivado_build.tcl
+        -tclargs %MICON_BUILD_DIR% xck26-sfvc784-2LV-c constraints.xdc
+      src:
+        - "%MICON_BUILD_DIR%\\*.sv"
+        - package\**\*.sv
+        - constraints.xdc
+      dst:
+        - "%MICON_BUILD_DIR%\\out.bit"
+
+    flash:
+      cmd: openFPGALoader -b kv260 %MICON_BUILD_DIR%\out.bit
+      src:
+        - "%MICON_BUILD_DIR%\\out.bit"
+
+  macos: {}

@@ -1,0 +1,32 @@
+module Spectro (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    wstrb: input logic<4>,
+    addr: input logic<32>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    in: input logic<8>,
+    sample: input logic,
+) {
+
+    var threshold: logic<32>;
+    var counter: logic<32>;
+
+    always_ff {
+        if_reset {
+            threshold = 0;
+            counter   = 0;
+        } else {
+            ready = valid;
+            rdata = threshold;
+            if wstrb[0] { threshold[7:0] = wdata[7:0]; }
+            if wstrb[1] { threshold[15:8] = wdata[15:8]; }
+            if wstrb[2] { threshold[23:16] = wdata[23:16]; }
+            if wstrb[3] { threshold[31:24] = wdata[31:24]; }
+        }
+    }
+}

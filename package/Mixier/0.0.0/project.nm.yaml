@@ -1,0 +1,6 @@
+ports:
+  ch0: {bit: 8, direct: in, side: left}
+  ch1: {bit: 8, direct: in, side: left}
+  ch2: {bit: 8, direct: in, side: left}
+  ch3: {bit: 8, direct: in, side: left}
+  out: {bit: 12, direct: out, side: right}

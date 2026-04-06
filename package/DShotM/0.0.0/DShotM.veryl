@@ -1,0 +1,63 @@
+// DShotM (Master)
+//       : _  :_   _   _   _   _   _   _   _   _   _   _   _   _   _   _
+// clk   :  |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |
+//       :    :_______
+// wstrb : ___/       \__________________________________________________
+//       :    :
+// iosel : in | out                 | in
+//       :    :   :_____    _____   :     :
+// tx    : ___:___/  \__\__/  \__\__:-----:------------------------------
+//       :    :   :                 :     :_____    _____
+// rx    : ---:---:-----------------:-----/  \__\__/  \__\__:____:_______
+//       :    :   :                 :     :                 :    :____
+// ready : ___:___:_________________:_____:_________________:____/    \__
+//       :    :   :                 :     :                 :    :
+//      [0]  [1] [2]               [3]   [4]               [5]  [6]
+
+// [1] Transmission sequence starts by wstrb
+// [2] Output bits
+// [3] End control frame transmission, wait 30us
+// [4] Start telemetry reception
+// [5] End reception, check CRC
+// [6] Store received data and checksum pass/fail in register
+
+// NOTE: Module body is commented out in the original SV source.
+
+module DShotM #(
+    param CLK_FREQ: u32 = 16000000,  // 16 mHz
+    param SPEED   : u32 = 600000,    // 600 kHz
+) (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    addr: input logic<32>,
+    wstrb: input logic<4>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    iosel: output logic,
+    tx: output logic,
+    rx: input logic,
+) {
+
+    var state: logic<6>;
+    var bit_cnt: logic<4>;
+    var phase_cnt: logic<2>;
+    var time_cnt: logic<6>;
+
+    var dsnd: logic<16>;
+    var drcv: logic<16>;
+
+    // const TRANS_CNT: u32 = CLK_FREQ / SPEED / 3;
+
+    const WAITING: logic<6> = 6'b000001;
+    const CALC_TX: logic<6> = 6'b000010;
+    const SENDING: logic<6> = 6'b000100;
+    const WAIT_RX: logic<6> = 6'b001000;
+    const RECVING: logic<6> = 6'b010000;
+    const ENDING : logic<6> = 6'b100000;
+
+    // Module body is commented out in the original source
+}

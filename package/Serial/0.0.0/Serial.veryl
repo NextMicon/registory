@@ -1,0 +1,200 @@
+module simpleuart #(
+    param DEFAULT_DIV: u32 = 1,
+    param RX_TIMEOUT : u32 = 1000,
+) (
+    clk: input clock,
+    rst: input reset,
+
+    ser_tx: output logic,
+    ser_rx: input logic,
+
+    reg_div_we: input logic<4>,
+    reg_div_di: input logic<32>,
+    reg_div_do: output logic<32>,
+
+    reg_dat_we: input logic,
+    reg_dat_re: input logic,
+    reg_dat_di: input logic<32>,
+    reg_dat_do: output logic<32>,
+    reg_dat_wait: output logic,
+) {
+    // All variable declarations first
+    var cfg_divider: logic<32>;
+
+    var recv_state: logic<4>;
+    var recv_divcnt: logic<32>;
+    var recv_pattern: logic<8>;
+    var recv_buf_data: logic<8>;
+    var recv_buf_valid: logic;
+
+    var send_pattern: logic<10>;
+    var send_bitcnt: logic<4>;
+    var send_divcnt: logic<32>;
+    var send_dummy: logic;
+
+    // Combinational outputs
+    assign reg_div_do   = cfg_divider;
+    assign reg_dat_wait = reg_dat_we && (|send_bitcnt || send_dummy);
+    assign ser_tx = send_pattern[0];
+
+    always_comb {
+        if recv_buf_valid {
+            reg_dat_do = recv_buf_data;
+        } else {
+            reg_dat_do = ~32'b0;
+        }
+    }
+
+    // Divider register
+    always_ff {
+        if_reset {
+            cfg_divider = DEFAULT_DIV;
+        } else {
+            if reg_div_we[0] { cfg_divider[7:0] = reg_div_di[7:0]; }
+            if reg_div_we[1] { cfg_divider[15:8] = reg_div_di[15:8]; }
+            if reg_div_we[2] { cfg_divider[23:16] = reg_div_di[23:16]; }
+            if reg_div_we[3] { cfg_divider[31:24] = reg_div_di[31:24]; }
+        }
+    }
+
+    // Receiver
+    always_ff {
+        if_reset {
+            recv_state     = 0;
+            recv_divcnt    = 0;
+            recv_pattern   = 0;
+            recv_buf_data  = 0;
+            recv_buf_valid = 0;
+        } else {
+            recv_divcnt = recv_divcnt + 1;
+            if reg_dat_re { recv_buf_valid = 0; }
+            case recv_state {
+                4'd0: {
+                    if !ser_rx { recv_state = 1; }
+                    recv_divcnt = 0;
+                }
+                4'd1: {
+                    if 2 * recv_divcnt >: cfg_divider {
+                        recv_state  = 2;
+                        recv_divcnt = 0;
+                    }
+                }
+                4'd10: {
+                    if recv_divcnt >: cfg_divider {
+                        recv_buf_data  = recv_pattern;
+                        recv_buf_valid = 1;
+                        recv_state     = 0;
+                    }
+                }
+                default: {
+                    if recv_divcnt >: cfg_divider {
+                        recv_pattern = {ser_rx, recv_pattern[7:1]};
+                        recv_state   = recv_state + 1;
+                        recv_divcnt  = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    // Transmitter
+    always_ff {
+        if_reset {
+            send_pattern = ~10'b0;
+            send_bitcnt  = 0;
+            send_divcnt  = 0;
+            send_dummy   = 1;
+        } else {
+            if |reg_div_we { send_dummy = 1; }
+            send_divcnt = send_divcnt + 1;
+            if send_dummy && !|send_bitcnt {
+                send_pattern = ~10'b0;
+                send_bitcnt  = 15;
+                send_divcnt  = 0;
+                send_dummy   = 0;
+            } else if reg_dat_we && !|send_bitcnt {
+                send_pattern = {1'b1, reg_dat_di[7:0], 1'b0};
+                send_bitcnt  = 10;
+                send_divcnt  = 0;
+            } else if send_divcnt >: cfg_divider && |send_bitcnt {
+                send_pattern = {1'b1, send_pattern[9:1]};
+                send_bitcnt  = send_bitcnt - 1;
+                send_divcnt  = 0;
+            }
+        }
+    }
+}
+
+module Serial (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    wstrb: input logic<4>,
+    addr: input logic<32>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    tx: output logic,
+    rx: input logic,
+) {
+
+    // Variable declarations (must precede inst)
+    var div_rdata: logic<32>;
+    var dat_rdata: logic<32>;
+    var reg_dat_wait: logic;
+
+    let div_valid: logic = valid && (addr[2] == 1'b0);
+    let div_ready: logic = div_valid;
+    let dat_valid: logic = valid && (addr[2] == 1'b1);
+    let dat_ready: logic = dat_valid && !reg_dat_wait;
+
+    assign ready = |{div_ready, dat_ready};
+
+    always_comb {
+        if div_ready {
+            rdata = div_rdata;
+        } else if dat_ready {
+            rdata = dat_rdata;
+        } else {
+            rdata = 32'h0000_0000;
+        }
+    }
+
+    var div_we_mux: logic<4>;
+    always_comb {
+        if div_valid {
+            div_we_mux = wstrb;
+        } else {
+            div_we_mux = 4'b0;
+        }
+    }
+
+    var dat_wstrb: logic;
+    always_comb {
+        if dat_valid {
+            dat_wstrb = wstrb[0];
+        } else {
+            dat_wstrb = 1'b0;
+        }
+    }
+
+    inst uart: simpleuart (
+        clk: clk,
+        rst: rst,
+
+        reg_div_we: div_we_mux,
+        reg_div_di: wdata,
+        reg_div_do: div_rdata,
+
+        reg_dat_we: dat_wstrb,
+        reg_dat_re: dat_valid && !dat_wstrb,
+        reg_dat_di: wdata,
+        reg_dat_do: dat_rdata,
+        reg_dat_wait: reg_dat_wait,
+
+        ser_tx: tx,
+        ser_rx: rx,
+    );
+}

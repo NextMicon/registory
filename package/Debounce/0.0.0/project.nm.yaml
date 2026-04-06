@@ -1,0 +1,6 @@
+ports:
+  in: {bit: 1, direct: in, side: left}
+  rise: {bit: 1, direct: out, side: right}
+  out: {bit: 1, direct: out, side: right}
+  fall: {bit: 1, direct: out, side: right}
+params: {}

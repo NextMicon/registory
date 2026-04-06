@@ -1,0 +1,3 @@
+ports:
+  of: {bit: 1, direct: out, side: right}
+params: {}

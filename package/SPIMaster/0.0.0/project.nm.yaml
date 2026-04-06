@@ -1,0 +1,5 @@
+ports:
+  scl: {bit: 1, direct: in, side: right}
+  miso: {bit: 1, direct: in, side: right}
+  mosi: {bit: 1, direct: out, side: right}
+params: {}

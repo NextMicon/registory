@@ -1,0 +1,39 @@
+module Digital (
+    clk: input clock,
+    rst: input reset,
+
+    valid: input logic,
+    ready: output logic,
+    wstrb: input logic<4>,
+    addr: input logic<32>,
+    wdata: input logic<32>,
+    rdata: output logic<32>,
+
+    iosel: output logic,
+    out: output logic,
+    in: input logic,
+) {
+
+    always_ff {
+        if_reset {
+            iosel = 0;
+            out   = 0;
+        } else {
+            ready = valid;
+            case addr[3:2] {
+                2'b00: {  // 0x...0
+                    rdata = iosel;
+                    if wstrb[0] { iosel = wdata[0]; }
+                }
+                2'b01: {  // 0x...4
+                    rdata = out;
+                    if wstrb[0] { out = wdata[0]; }
+                }
+                2'b10: {  // 0x...8
+                    rdata = in;
+                }
+                default: {}
+            }
+        }
+    }
+}
