@@ -45,108 +45,135 @@ intr:
 build:
   linux:
     transpile:
-      cmd: $MICON_BIN transpile
+      cmd: micon transpile
       src:
         - project.nm.yaml
         - package/**/*.sv
         - package/**/*.veryl
       dst:
-        - $MICON_BUILD_DIR/main.sv
-        - $MICON_BUILD_DIR/read_sv.ys
         - software/micon.rs
-
-    synthesis:
-      cmd: yosys -s $MICON_BUILD_DIR/read_sv.ys -p "synth_ice40 -top top -json $MICON_BUILD_DIR/out.json"
+        - hardware/main.veryl
+    
+    veryl:
+      cmd: |
+        set -e
+        # main.veryl → main.sv (strip "build_" prefix)
+        mkdir -p build/veryl_src
+        cp hardware/main.veryl build/veryl_src/
+        printf '[project]\nname = "build"\nversion = "0.0.0"\n[build]\nsources = ["."]\ntarget = {type = "directory", path = "out"}\n' > build/veryl_src/Veryl.toml
+        (cd build/veryl_src && veryl build)
+        for f in build/veryl_src/out/*.sv; do sed 's/build_//g' "$f" > "build/$(basename "$f" | sed 's/^build_//')"; done
+        # platform sv
+        cp platform/hardware/*.sv build/ 2>/dev/null || true
+        # package + hardware veryl → package_*.sv
+        mkdir -p build/modules
+        cp package/*/*.veryl build/modules/ 2>/dev/null || true
+        find hardware -maxdepth 1 -name '*.veryl' ! -name 'main.veryl' -exec cp {} build/modules/ \; 2>/dev/null || true
+        if ls build/modules/*.veryl 1>/dev/null 2>&1; then
+          printf '[project]\nname = "package"\nversion = "0.0.0"\n' > build/modules/Veryl.toml
+          (cd build/modules && veryl build)
+        fi
+        # read_sv.ys
+        find build -name '*.sv' -not -path '*/veryl_src/*' -not -path '*/dependencies/*' | sort | sed 's/^/read_verilog -sv /' > build/read_sv.ys
       src:
-        - $MICON_BUILD_DIR/read_sv.ys
-        - $MICON_BUILD_DIR/*.sv
+        - hardware/**/*.veryl
+        - package/**/*.veryl
+        - platform/hardware/*.sv
+      dst:
+        - build/main.sv
+        - build/read_sv.ys
+        
+    synthesis:
+      cmd: yosys -s build/read_sv.ys -p "synth_ice40 -top top -json build/out.json"
+      src:
+        - build/read_sv.ys
+        - build/*.sv
         - package/**/*.sv
       dst:
-        - $MICON_BUILD_DIR/out.json
+        - build/out.json
 
     pnr:
-      cmd: "nextpnr-ice40 --lp8k --package cm81 --pcf $MICON_PLATFORM_DIR/hardware/pin.pcf --json $MICON_BUILD_DIR/out.json --asc $MICON_BUILD_DIR/out.asc"
+      cmd: "nextpnr-ice40 --lp8k --package cm81 --pcf platform/hardware/pin.pcf --json build/out.json --asc build/out.asc"
       src:
-        - $MICON_BUILD_DIR/out.json
-        - constraints.pcf
+        - build/out.json
+        - platform/hardware/pin.pcf
       dst:
-        - $MICON_BUILD_DIR/out.asc
+        - build/out.asc
 
     bitstream:
-      cmd: "icepack $MICON_BUILD_DIR/out.asc $MICON_BUILD_DIR/out.bin"
+      cmd: "icepack build/out.asc build/out.bin"
       src:
-        - $MICON_BUILD_DIR/out.asc
+        - build/out.asc
       dst:
-        - $MICON_BUILD_DIR/out.bin
+        - build/out.bin
 
     fw-compile:
-      cmd: "rustc --edition 2021 --target riscv32im-unknown-none-elf -C opt-level=s -C panic=abort --emit=obj -o $MICON_BUILD_DIR/fw.o software/main.rs"
+      cmd: "rustc --edition 2021 --target riscv32im-unknown-none-elf -C opt-level=s -C panic=abort --emit=obj -o build/fw.o software/main.rs"
       src:
         - software/*.rs
       dst:
-        - $MICON_BUILD_DIR/fw.o
+        - build/fw.o
 
     fw-link:
-      cmd: "riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -nostartfiles -Wl,-Bstatic,-T,$MICON_PLATFORM_DIR/software/sections.lds,--strip-debug,--no-warn-mismatch -O3 -ffreestanding -nostdlib -o $MICON_BUILD_DIR/fw.elf $MICON_PLATFORM_DIR/software/start.S $MICON_BUILD_DIR/fw.o"
+      cmd: "riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -nostartfiles -Wl,-Bstatic,-T,platform/software/sections.lds,--strip-debug,--no-warn-mismatch -O3 -ffreestanding -nostdlib -o build/fw.elf platform/software/start.S build/fw.o"
       src:
-        - $MICON_BUILD_DIR/fw.o
-        - $MICON_PLATFORM_DIR/software/start.S
-        - $MICON_PLATFORM_DIR/software/sections.lds
+        - build/fw.o
+        - platform/software/start.S
+        - platform/software/sections.lds
       dst:
-        - $MICON_BUILD_DIR/fw.elf
+        - build/fw.elf
 
     fw-bin:
-      cmd: "riscv64-unknown-elf-objcopy -O binary $MICON_BUILD_DIR/fw.elf $MICON_BUILD_DIR/fw.bin && truncate -s %256 $MICON_BUILD_DIR/fw.bin"
+      cmd: "riscv64-unknown-elf-objcopy -O binary build/fw.elf build/fw.bin && truncate -s %256 build/fw.bin"
       src:
-        - $MICON_BUILD_DIR/fw.elf
+        - build/fw.elf
       dst:
-        - $MICON_BUILD_DIR/fw.bin
+        - build/fw.bin
 
     flash:
-      cmd: "tinyprog -p $MICON_BUILD_DIR/out.bin -u $MICON_BUILD_DIR/fw.bin"
+      cmd: "tinyprog -p build/out.bin -u build/fw.bin"
       src:
-        - $MICON_BUILD_DIR/out.bin
-        - $MICON_BUILD_DIR/fw.bin
+        - build/out.bin
+        - build/fw.bin
 
   windows:
     transpile:
-      cmd: "%MICON_BIN% transpile"
+      cmd: micon transpile
       src:
         - project.nm.yaml
         - package\**\*.sv
         - package\**\*.veryl
       dst:
-        - "%MICON_BUILD_DIR%\\main.sv"
-        - "%MICON_BUILD_DIR%\\read_sv.ys"
-        - sw\micon.rs
+        - software\micon.rs
+        - hardware\main.veryl
 
     synthesis:
-      cmd: yosys -s %MICON_BUILD_DIR%\read_sv.ys -p "synth_ice40 -top top -json %MICON_BUILD_DIR%\out.json"
+      cmd: yosys -s build\read_sv.ys -p "synth_ice40 -top top -json build\out.json"
       src:
-        - "%MICON_BUILD_DIR%\\read_sv.ys"
-        - "%MICON_BUILD_DIR%\\*.sv"
+        - build\read_sv.ys
+        - build\*.sv
         - package\**\*.sv
       dst:
-        - "%MICON_BUILD_DIR%\\out.json"
+        - build\out.json
 
     pnr:
-      cmd: nextpnr-ice40 --lp8k --package cm81 --pcf $MICON_PLATFORM_DIR/hardware/pin.pcf --json %MICON_BUILD_DIR%\out.json --asc %MICON_BUILD_DIR%\out.asc
+      cmd: nextpnr-ice40 --lp8k --package cm81 --pcf platform\hardware\pin.pcf --json build\out.json --asc build\out.asc
       src:
-        - "%MICON_BUILD_DIR%\\out.json"
-        - constraints.pcf
+        - build\out.json
+        - platform\hardware\pin.pcf
       dst:
-        - "%MICON_BUILD_DIR%\\out.asc"
+        - build\out.asc
 
     bitstream:
-      cmd: icepack %MICON_BUILD_DIR%\out.asc %MICON_BUILD_DIR%\out.bin
+      cmd: icepack build\out.asc build\out.bin
       src:
-        - "%MICON_BUILD_DIR%\\out.asc"
+        - build\out.asc
       dst:
-        - "%MICON_BUILD_DIR%\\out.bin"
+        - build\out.bin
 
     flash:
-      cmd: tinyprog -p %MICON_BUILD_DIR%\out.bin
+      cmd: tinyprog -p build\out.bin
       src:
-        - "%MICON_BUILD_DIR%\\out.bin"
+        - build\out.bin
 
   macos: {}
