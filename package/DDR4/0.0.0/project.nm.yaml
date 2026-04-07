@@ -1,3 +1,5 @@
+target:
+  bus: "true"
 ports:
   reset_n: {bit: 1, direct: out, side: left}
   cs_n: {bit: 1, direct: out, side: left}

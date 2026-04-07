@@ -1,3 +1,5 @@
+target:
+  bus: "true"
 ports:
   in0: {bit: 288, direct: in, side: left}
   in1: {bit: 288, direct: in, side: left}

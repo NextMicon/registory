@@ -1,3 +1,5 @@
+target:
+  bus: "true"
 ports:
   din: {bit: 12, direct: in, side: left}
   sample: {bit: 1, direct: in, side: left}

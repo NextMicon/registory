@@ -1,3 +1,5 @@
+target:
+  bus: "true"
 ports:
   io: {bit: 1, direct: out, side: right}
   tx: {bit: 1, direct: out, side: right}

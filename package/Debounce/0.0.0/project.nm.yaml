@@ -1,3 +1,5 @@
+target:
+  bus: "true"
 ports:
   in: {bit: 1, direct: in, side: left}
   rise: {bit: 1, direct: out, side: right}

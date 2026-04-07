@@ -1,3 +1,5 @@
+target:
+  bus: "true"
 ports:
   w_trig: {bit: 1, direct: out, side: left}
   w_valid: {bit: 1, direct: in, side: left}

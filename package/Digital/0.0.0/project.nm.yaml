@@ -1,3 +1,5 @@
+target:
+  bus: "true"
 ports:
   iosel: {bit: 1, direct: out, side: right}
   out: {bit: 1, direct: out, side: right}

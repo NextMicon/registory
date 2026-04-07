@@ -1,3 +1,5 @@
+target:
+  bus: "true"
 ports:
   scl: {bit: 1, direct: in, side: right}
   miso: {bit: 1, direct: in, side: right}
