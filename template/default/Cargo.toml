@@ -1,11 +1,13 @@
 [package]
-name="micon"
+name = "micon"
 version = "0.0.0"
 edition = "2021"
 
 [[bin]]
 name = "firmware"
 path = "software/main.rs"
+test = false
+harness = false
 
 [profile.release]
 opt-level = "s"
