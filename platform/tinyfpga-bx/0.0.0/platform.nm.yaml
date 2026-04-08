@@ -3,7 +3,7 @@ clk: 16000000
 mem:
   ram: [0, 8192]
   flash: [0x00050000, 0x00080000]
-  user: [0x03000000, 0x08000000]
+  user: [0x03000000, 0xFF000000]
 
 pin:
   led: o
@@ -44,55 +44,39 @@ intr:
 
 scripts:
   linux:
-    transpile:
-      cmd: micon transpile
+    generate:
+      cmd: micon generate
       src:
         - project.nm.yaml
-        - package/**/*.sv
-        - package/**/*.veryl
+        - global/**/*.veryl
+        - local/**/*.veryl
       dst:
         - software/micon.rs
-        - hardware/main.veryl
+        - micon.veryl
 
-    veryl:
+    synth:
       cmd: |
         set -e
-        # main.veryl → main.sv (strip "build_" prefix)
-        mkdir -p build/veryl_src
-        cp hardware/main.veryl build/veryl_src/
-        printf '[project]\nname = "build"\nversion = "0.0.0"\n[build]\nsources = ["."]\ntarget = {type = "directory", path = "out"}\n' > build/veryl_src/Veryl.toml
-        (cd build/veryl_src && veryl build)
-        for f in build/veryl_src/out/*.sv; do sed 's/build_//g' "$f" > "build/$(basename "$f" | sed 's/^build_//')"; done
-        # platform sv
-        cp platform/hardware/*.sv build/ 2>/dev/null || true
-        # package + hardware veryl → package_*.sv
-        mkdir -p build/modules
-        cp package/*/*.veryl build/modules/ 2>/dev/null || true
-        find hardware -maxdepth 1 -name '*.veryl' ! -name 'main.veryl' -exec cp {} build/modules/ \; 2>/dev/null || true
-        if ls build/modules/*.veryl 1>/dev/null 2>&1; then
-          printf '[project]\nname = "package"\nversion = "0.0.0"\n' > build/modules/Veryl.toml
-          (cd build/modules && veryl build)
-        fi
-        # read_sv.ys
-        find build -name '*.sv' -not -path '*/veryl_src/*' -not -path '*/dependencies/*' | sort | sed 's/^/read_verilog -sv /' > build/read_sv.ys
+        veryl build
+        mv micon.f build/micon.f
+        sed 's/^/read_verilog -sv /' build/micon.f > build/read_sv.ys
+        printf 'read_verilog -sv %s\n' platform/hardware/*.sv >> build/read_sv.ys
+        yosys -s build/read_sv.ys -p "synth_ice40 -top top -json build/out.json"
       src:
-        - hardware/**/*.veryl
-        - package/**/*.veryl
+        - micon.veryl
+        - local/**/*.veryl
+        - global/**/*.veryl
         - platform/hardware/*.sv
-      dst:
-        - build/main.sv
-        - build/read_sv.ys
-
-    synthesis:
-      cmd: yosys -s build/read_sv.ys -p "synth_ice40 -top top -json build/out.json"
-      src:
-        - build/read_sv.ys
-        - build/*.sv
       dst:
         - build/out.json
 
     pnr:
-      cmd: "nextpnr-ice40 --lp8k --package cm81 --pcf platform/hardware/pin.pcf --json build/out.json --asc build/out.asc"
+      cmd: |
+        set -e
+        nextpnr-ice40 --lp8k --package cm81 --threads $(nproc) \
+          --pcf platform/hardware/pin.pcf \
+          --json build/out.json --asc build/out.asc
+        icetime -d lp8k -c 12 -mtr build/timing.rpt build/out.asc
       src:
         - build/out.json
         - platform/hardware/pin.pcf
@@ -106,26 +90,26 @@ scripts:
       dst:
         - build/out.bin
 
-    fw-compile:
-      cmd: "rustc --edition 2021 --target riscv32im-unknown-none-elf -C opt-level=s -C panic=abort --emit=obj -o build/fw.o software/main.rs"
+    compile:
+      cmd: |
+        set -e
+        mkdir -p build
+        rustc --edition 2021 --target riscv32im-unknown-none-elf \
+          -C opt-level=s -C panic=abort --emit=obj \
+          -o build/fw.o software/main.rs
+        riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -nostartfiles \
+          -Wl,-Bstatic,-T,platform/software/sections.lds,--strip-debug,-Map=build/fw.map,--cref,--no-warn-mismatch \
+          -O3 -ffreestanding -nostdlib \
+          -o build/fw.elf platform/software/start.S build/fw.o
+        riscv64-unknown-elf-objcopy -O binary build/fw.elf build/fw.bin
+        truncate -s %256 build/fw.bin
+        riscv64-unknown-elf-objdump --demangle -D build/fw.elf > build/fw.objdump
+        riscv64-unknown-elf-nm --demangle --numeric-sort build/fw.elf > build/fw.nm
       src:
         - software/*.rs
-      dst:
-        - build/fw.o
-
-    fw-link:
-      cmd: "riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -nostartfiles -Wl,-Bstatic,-T,platform/software/sections.lds,--strip-debug,--no-warn-mismatch -O3 -ffreestanding -nostdlib -o build/fw.elf platform/software/start.S build/fw.o"
-      src:
-        - build/fw.o
+        - Cargo.toml
         - platform/software/start.S
         - platform/software/sections.lds
-      dst:
-        - build/fw.elf
-
-    fw-bin:
-      cmd: "riscv64-unknown-elf-objcopy -O binary build/fw.elf build/fw.bin && truncate -s %256 build/fw.bin"
-      src:
-        - build/fw.elf
       dst:
         - build/fw.bin
 
@@ -145,58 +129,54 @@ scripts:
         - build/out.bin
         - build/fw.bin
 
-    testbench:
-      cmd: micon testbench
-      src:
-        - sim/*/stimuli.nm.yaml
-      dst:
-        - sim/*/tb_top.cpp
-
-    verilator:
+    simulate:
       cmd: |
         set -e
-        SIM_DIR=sim/$MICON_SIM_ID
-        cat > $SIM_DIR/fpga_stubs.sv <<'SV'
-        module SB_IO #(
-            parameter [5:0] PIN_TYPE = 6'b0,
-            parameter PULLUP = 1'b0
-        ) (
-            inout  PACKAGE_PIN,
-            input  OUTPUT_ENABLE,
-            input  D_OUT_0,
-            output D_IN_0
-        );
-            assign PACKAGE_PIN = OUTPUT_ENABLE ? D_OUT_0 : 1'bz;
-            assign D_IN_0 = PACKAGE_PIN;
-        endmodule
-        SV
+        # Generate flash hex from firmware binary (16MB image, FW at 0x050000)
+        dd if=/dev/zero bs=1 count=$((0x050000)) 2>/dev/null > build/simu_flash.bin
+        cat build/fw.bin >> build/simu_flash.bin
+        truncate -s 16M build/simu_flash.bin
+        xxd -c 1 -p build/simu_flash.bin > build/simu_flash.hex
+        echo "  Flash hex: $(stat -c%s build/fw.bin) bytes FW at 0x050000"
+        # Patch !| for iverilog compatibility
         SV_FILES=$(sed 's/read_verilog -sv //' build/read_sv.ys)
-        verilator --cc --exe --build --trace --top-module top \
-          $SIM_DIR/fpga_stubs.sv $SV_FILES $SIM_DIR/tb_top.cpp \
-          -o sim_top --Mdir $SIM_DIR/obj_dir \
-          -Wno-PINMISSING -Wno-WIDTHTRUNC -Wno-WIDTHEXPAND -Wno-WIDTHXZEXPAND \
-          -Wno-CASEINCOMPLETE -Wno-UNSIGNED -Wno-UNOPTFLAT -Wno-MULTITOP \
-          -Wno-TIMESCALEMOD -Wno-CASEOVERLAP -Wno-LATCH -Wno-IMPLICIT -Wno-fatal
-        $SIM_DIR/obj_dir/sim_top
+        for f in $SV_FILES; do
+          python3 -c "
+        import re, sys
+        with open(sys.argv[1]) as fh: s = fh.read()
+        s = re.sub(r'(?<=[( &|,])!\|(\w+)', r'!(|\1)', s)
+        with open(sys.argv[1], 'w') as fh: fh.write(s)
+          " "$f"
+        done
+        # Compile and run with iverilog
+        CELLS_SIM=$(yosys-config --datdir/ice40/cells_sim.v)
+        iverilog -g2012 -o build/sim \
+          -DNO_ICE40_DEFAULT_ASSIGNMENTS \
+          platform/simulate/test.sv \
+          $SV_FILES \
+          "$CELLS_SIM"
+        echo "  Running simulation..."
+        vvp build/sim
+        echo "  VCD: build/simulation.vcd"
       src:
-        - build/read_sv.ys
         - build/*.sv
-        - sim/*/tb_top.cpp
+        - build/modules/*.sv
+        - build/fw.bin
       dst:
-        - sim/*/out.vcd
+        - build/simulation.vcd
 
   windows:
-    transpile:
-      cmd: micon transpile
+    generate:
+      cmd: micon generate
       src:
         - project.nm.yaml
-        - package\**\*.sv
-        - package\**\*.veryl
+        - global\**\*.veryl
+        - local\**\*.veryl
       dst:
         - software\micon.rs
         - hardware\main.veryl
 
-    synthesis:
+    synth:
       cmd: yosys -s build\read_sv.ys -p "synth_ice40 -top top -json build\out.json"
       src:
         - build\read_sv.ys

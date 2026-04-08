@@ -1,0 +1,12 @@
+[package]
+name="micon"
+version = "0.0.0"
+edition = "2021"
+
+[[bin]]
+name = "firmware"
+path = "software/main.rs"
+
+[profile.release]
+opt-level = "s"
+panic = "abort"

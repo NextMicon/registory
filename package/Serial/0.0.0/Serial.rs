@@ -27,7 +27,7 @@ impl Serial {
 
     /// Set baudrate.
     pub fn baud(&self, baudrate: u32) {
-        self.write_reg(REG_BAUD, super::CLK_HZ / baudrate);
+        self.write_reg(REG_BAUD, super::CLK / baudrate);
     }
 
     /// Print a single character.

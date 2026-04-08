@@ -1,0 +1,7 @@
+.build/
+build/
+dependencies/
+platform/
+global/
+simulation/*/out.vcd
+*.f

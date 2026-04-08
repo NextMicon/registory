@@ -1,0 +1,11 @@
+target:
+  arch: tinyfpga-bx
+params: {}
+ports:
+  led: led
+elems:
+  led_reg: {type: RegWrite, bit: 1, pos: [100, 60], flip: true}
+  led: {type: PortOut, bit: 1, pos: [300, 60], flip: false}
+wires:
+  w0: {src: {elem: led_reg, port: out}, dst: {elem: led, port: out}, path: []}
+comments: {}

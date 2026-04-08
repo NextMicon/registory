@@ -1,0 +1,8 @@
+[project]
+name = "micon"
+version = "0.0.0"
+
+[build]
+sources = ["."]
+omit_project_prefix = true
+target = {type = "directory", path = "build/veryl"}

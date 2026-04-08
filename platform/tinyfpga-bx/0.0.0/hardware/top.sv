@@ -48,10 +48,10 @@ module top (
     inout tri logic pin31
 );
   // Power-on Reset
-  logic rstn;
+  logic rst;
   por u_por (
       .clk (clk),
-      .rstn(rstn)
+      .rst(rst)
   );
 
   // Memory bus between sys and main
@@ -68,7 +68,7 @@ module top (
   // System module (CPU + RAM + ROM)
   sys u_sys (
       .clk      (clk),
-      .rstn     (rstn),
+      .rst     (rst),
       .flash_csb(flash_csb),
       .flash_clk(flash_clk),
       .flash_io0(flash_io0),
@@ -88,7 +88,7 @@ module top (
   //
   // main module interface specification:
   //   clk       : input  clock        — system clock
-  //   rstn      : input  reset        — active-low reset from POR
+  //   rst      : input  reset        — active-low reset from POR
   //   mem_valid : input  logic        — CPU asserts when a bus transaction is requested
   //   mem_ready : output logic        — main asserts for 1 cycle to complete the transaction
   //   mem_addr  : input  logic [31:0] — byte address from CPU
@@ -101,7 +101,7 @@ module top (
   //
   main u_main (
       .clk      (clk),
-      .rstn     (rstn),
+      .rst     (rst),
       .mem_valid(mem_valid),
       .mem_ready(mem_ready),
       .mem_addr (mem_addr),
@@ -151,7 +151,7 @@ endmodule
 /// Exposes memory bus signals to connect user logic (main module)
 module sys (
     input var  logic              clk,
-    input var  logic              rstn,
+    input var  logic              rst,
     inout      tri logic          flash_csb,
     inout      tri logic          flash_clk,
     inout      tri logic          flash_io0,
@@ -189,7 +189,7 @@ module sys (
       .ENABLE_IRQ_QREGS(1)
   ) u_cpu (
       .clk      (clk),
-      .rstn     (rstn),
+      .rst     (rst),
       .mem_valid(cpu_valid),
       .mem_ready(cpu_ready),
       .mem_addr (cpu_addr),
@@ -218,7 +218,7 @@ module sys (
       .WORDS(2048)
   ) u_ram (
       .clk  (clk),
-      .rstn (rstn),
+      .rst (rst),
       .valid(ram_valid),
       .ready(ram_ready),
       .wstrb(ram_wstrb),
@@ -236,7 +236,7 @@ module sys (
   logic          rom_cfg_valid;
   logic          rom_cfg_ready;
   logic [32-1:0] rom_cfg_rdata;
-  always_comb rom_sel = (cpu_addr[31:20] == 12'h000) & (4'h5 < cpu_addr[19:16]);
+  always_comb rom_sel = (cpu_addr[31:20] == 12'h000) & (4'h5 <= cpu_addr[19:16]);
   always_comb rom_valid = cpu_valid & rom_sel;
   always_comb rom_cfg_sel = cpu_addr[31:24] == 8'h02;
   always_comb rom_cfg_valid = cpu_valid & rom_cfg_sel;
@@ -273,7 +273,7 @@ module sys (
 
   SPIROM u_rom (
       .clk            (clk),
-      .rstn           (rstn),
+      .rst           (rst),
       .valid          (rom_valid),
       .ready          (rom_ready),
       .wstrb          (rom_wstrb),
@@ -355,12 +355,12 @@ module por #(
     parameter int unsigned N = 6
 ) (
     input var  logic clk,
-    output var logic rstn
+    output var logic rst
 );
   logic [N-1:0] cnt;
-  always_comb rstn = &cnt;
+  always_comb rst = &cnt;
   always_ff @(posedge clk) begin
-    cnt <= cnt + N'({1'b0, !rstn});
+    cnt <= cnt + N'({1'b0, !rst});
   end
 endmodule
 
@@ -450,7 +450,7 @@ module picorv32 #(
     parameter [31:0] STACKADDR = 32'hffff_ffff
 ) (
     input clk,
-    rstn,
+    rst,
     output reg trap,
 
     output reg mem_valid,
@@ -628,7 +628,7 @@ module picorv32 #(
     if (ENABLE_FAST_MUL) begin
       picorv32_pcpi_fast_mul pcpi_mul (
           .clk       (clk),
-          .rstn      (rstn),
+          .rst      (rst),
           .pcpi_valid(pcpi_valid),
           .pcpi_insn (pcpi_insn),
           .pcpi_rs1  (pcpi_rs1),
@@ -641,7 +641,7 @@ module picorv32 #(
     end else if (ENABLE_MUL) begin
       picorv32_pcpi_mul pcpi_mul (
           .clk       (clk),
-          .rstn      (rstn),
+          .rst      (rst),
           .pcpi_valid(pcpi_valid),
           .pcpi_insn (pcpi_insn),
           .pcpi_rs1  (pcpi_rs1),
@@ -663,7 +663,7 @@ module picorv32 #(
     if (ENABLE_DIV) begin
       picorv32_pcpi_div pcpi_div (
           .clk       (clk),
-          .rstn      (rstn),
+          .rst      (rst),
           .pcpi_valid(pcpi_valid),
           .pcpi_insn (pcpi_insn),
           .pcpi_rs1  (pcpi_rs1),
@@ -732,11 +732,11 @@ module picorv32 #(
   assign mem_xfer = (mem_valid && mem_ready) || (mem_la_use_prefetched_high_word && mem_do_rinst);
 
   wire mem_busy = |{mem_do_prefetch, mem_do_rinst, mem_do_rdata, mem_do_wdata};
-  wire mem_done = rstn && ((mem_xfer && |mem_state && (mem_do_rinst || mem_do_rdata || mem_do_wdata)) || (&mem_state && mem_do_rinst)) &&
+  wire mem_done = rst && ((mem_xfer && |mem_state && (mem_do_rinst || mem_do_rdata || mem_do_wdata)) || (&mem_state && mem_do_rinst)) &&
 			(!mem_la_firstword || (~&mem_rdata_latched[1:0] && mem_xfer));
 
-  assign mem_la_write = rstn && !mem_state && mem_do_wdata;
-  assign mem_la_read = rstn && ((!mem_la_use_prefetched_high_word && !mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata)) ||
+  assign mem_la_write = rst && !mem_state && mem_do_wdata;
+  assign mem_la_read = rst && ((!mem_la_use_prefetched_high_word && !mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata)) ||
 			(COMPRESSED_ISA && mem_xfer && (!last_mem_valid ? mem_la_firstword : mem_la_firstword_reg) && !mem_la_secondword && &mem_rdata_latched[1:0]));
   assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? {next_pc[31:2] + mem_la_firstword_xfer, 2'b00} : {reg_op1[31:2], 2'b00};
 
@@ -747,7 +747,7 @@ module picorv32 #(
 			COMPRESSED_ISA && mem_la_firstword ? {16'bx, mem_rdata_latched_noshuffle[31:16]} : mem_rdata_latched_noshuffle;
 
   always @(posedge clk) begin
-    if (!rstn) begin
+    if (!rst) begin
       mem_la_firstword_reg <= 0;
       last_mem_valid <= 0;
     end else begin
@@ -937,7 +937,7 @@ module picorv32 #(
   end
 
   always @(posedge clk) begin
-    if (rstn && !trap) begin
+    if (rst && !trap) begin
       if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) `assert(!mem_do_wdata);
 
       if (mem_do_prefetch || mem_do_rinst) `assert(!mem_do_rdata);
@@ -951,9 +951,9 @@ module picorv32 #(
   end
 
   always @(posedge clk) begin
-    if (!rstn || trap) begin
-      if (!rstn) mem_state <= 0;
-      if (!rstn || mem_ready) mem_valid <= 0;
+    if (!rst || trap) begin
+      if (!rst) mem_state <= 0;
+      if (!rst || mem_ready) mem_valid <= 0;
       mem_la_secondword <= 0;
       prefetched_high_word <= 0;
     end else begin
@@ -1185,7 +1185,7 @@ module picorv32 #(
     q_insn_rd <= dbg_insn_rd;
     dbg_next <= launch_next_insn;
 
-    if (!rstn || trap) dbg_valid_insn <= 0;
+    if (!rst || trap) dbg_valid_insn <= 0;
     else if (launch_next_insn) dbg_valid_insn <= 1;
 
     if (decoder_trigger_q) begin
@@ -1540,7 +1540,7 @@ module picorv32 #(
       endcase
     end
 
-    if (!rstn) begin
+    if (!rst) begin
       is_beq_bne_blt_bge_bltu_bgeu <= 0;
       is_compare <= 0;
 
@@ -1693,7 +1693,7 @@ module picorv32 #(
   always @* begin
     clear_prefetched_high_word = clear_prefetched_high_word_q;
     if (!prefetched_high_word) clear_prefetched_high_word = 0;
-    if (latched_branch || irq_state || !rstn) clear_prefetched_high_word = COMPRESSED_ISA;
+    if (latched_branch || irq_state || !rst) clear_prefetched_high_word = COMPRESSED_ISA;
   end
 
   reg cpuregs_write;
@@ -1731,7 +1731,7 @@ module picorv32 #(
 
 `ifndef PICORV32_REGS
   always @(posedge clk) begin
-    if (rstn && cpuregs_write && latched_rd) cpuregs[latched_rd] <= cpuregs_wrdata;
+    if (rst && cpuregs_write && latched_rd) cpuregs[latched_rd] <= cpuregs_wrdata;
   end
 
   always @* begin
@@ -1764,7 +1764,7 @@ module picorv32 #(
 
   `PICORV32_REGS cpuregs (
       .clk(clk),
-      .wen(rstn && cpuregs_write && latched_rd),
+      .wen(rst && cpuregs_write && latched_rd),
       .waddr(cpuregs_waddr),
       .raddr1(cpuregs_raddr1),
       .raddr2(cpuregs_raddr2),
@@ -1810,14 +1810,14 @@ module picorv32 #(
     end
 
     if (WITH_PCPI && CATCH_ILLINSN) begin
-      if (rstn && pcpi_valid && !pcpi_int_wait) begin
+      if (rst && pcpi_valid && !pcpi_int_wait) begin
         if (pcpi_timeout_counter) pcpi_timeout_counter <= pcpi_timeout_counter - 1;
       end else pcpi_timeout_counter <= ~0;
       pcpi_timeout <= !pcpi_timeout_counter;
     end
 
     if (ENABLE_COUNTERS) begin
-      count_cycle <= rstn ? count_cycle + 1 : 0;
+      count_cycle <= rst ? count_cycle + 1 : 0;
       if (!ENABLE_COUNTERS64) count_cycle[63:32] <= 0;
     end else begin
       count_cycle <= 'bx;
@@ -1845,7 +1845,7 @@ module picorv32 #(
 
     if (!ENABLE_TRACE) trace_data <= 'bx;
 
-    if (!rstn) begin
+    if (!rst) begin
       reg_pc <= PROGADDR_RESET;
       reg_next_pc <= PROGADDR_RESET;
       if (ENABLE_COUNTERS) count_instr <= 0;
@@ -2279,7 +2279,7 @@ module picorv32 #(
         end
       endcase
 
-    if (CATCH_MISALIGN && rstn && (mem_do_rdata || mem_do_wdata)) begin
+    if (CATCH_MISALIGN && rst && (mem_do_rdata || mem_do_wdata)) begin
       if (mem_wordsize == 0 && reg_op1[1:0] != 0) begin
         `debug($display("MISALIGNED WORD: 0x%08x", reg_op1);)
         if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
@@ -2293,7 +2293,7 @@ module picorv32 #(
         end else cpu_state <= cpu_state_trap;
       end
     end
-    if (CATCH_MISALIGN && rstn && mem_do_rinst && (COMPRESSED_ISA ? reg_pc[0] : |reg_pc[1:0])) begin
+    if (CATCH_MISALIGN && rst && mem_do_rinst && (COMPRESSED_ISA ? reg_pc[0] : |reg_pc[1:0])) begin
       `debug($display("MISALIGNED INSTRUCTION: 0x%08x", reg_pc);)
       if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
         next_irq_pending[irq_buserror] = 1;
@@ -2303,7 +2303,7 @@ module picorv32 #(
       cpu_state <= cpu_state_trap;
     end
 
-    if (!rstn || mem_done) begin
+    if (!rst || mem_done) begin
       mem_do_prefetch <= 0;
       mem_do_rinst <= 0;
       mem_do_rdata <= 0;
@@ -2333,8 +2333,8 @@ module picorv32 #(
   reg dbg_irq_enter;
   reg [31:0] dbg_irq_ret;
   always @(posedge clk) begin
-    rvfi_valid <= rstn && (launch_next_insn || trap) && dbg_valid_insn;
-    rvfi_order <= rstn ? rvfi_order + rvfi_valid : 0;
+    rvfi_valid <= rst && (launch_next_insn || trap) && dbg_valid_insn;
+    rvfi_order <= rst ? rvfi_order + rvfi_valid : 0;
 
     rvfi_insn <= dbg_insn_opcode;
     rvfi_rs1_addr <= dbg_rs1val_valid ? dbg_insn_rs1 : 0;
@@ -2346,7 +2346,7 @@ module picorv32 #(
     rvfi_halt <= trap;
     rvfi_intr <= dbg_irq_enter;
 
-    if (!rstn) begin
+    if (!rst) begin
       dbg_irq_call  <= 0;
       dbg_irq_enter <= 0;
     end else if (rvfi_valid) begin
@@ -2357,7 +2357,7 @@ module picorv32 #(
       dbg_irq_ret  <= next_pc;
     end
 
-    if (!rstn) begin
+    if (!rst) begin
       rvfi_rd_addr  <= 0;
       rvfi_rd_wdata <= 0;
     end else if (cpuregs_write && !irq_state) begin
@@ -2413,15 +2413,15 @@ module picorv32 #(
   // stall the memory interface for max 4 cycles
   restrict property (|last_mem_nowait || mem_ready || !mem_valid);
 
-  // rstn low in first cycle, after that rstn high
-  restrict property (rstn != $initstate);
+  // rst low in first cycle, after that rst high
+  restrict property (rst != $initstate);
 
   // this just makes it much easier to read traces. uncomment as needed.
   // assume property (mem_valid || !mem_ready);
 
   reg ok;
   always @* begin
-    if (rstn) begin
+    if (rst) begin
       // instruction fetches are read-only
       if (mem_valid && mem_instr) assert (mem_wstrb == 0);
 
@@ -2503,7 +2503,7 @@ module picorv32_pcpi_mul #(
     parameter CARRY_CHAIN   = 4
 ) (
     input clk,
-    rstn,
+    rst,
 
     input             pcpi_valid,
     input      [31:0] pcpi_insn,
@@ -2529,7 +2529,7 @@ module picorv32_pcpi_mul #(
     instr_mulhsu <= 0;
     instr_mulhu <= 0;
 
-    if (rstn && pcpi_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+    if (rst && pcpi_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
       case (pcpi_insn[14:12])
         3'b000: instr_mul <= 1;
         3'b001: instr_mulh <= 1;
@@ -2577,7 +2577,7 @@ module picorv32_pcpi_mul #(
 
   always @(posedge clk) begin
     mul_finish <= 0;
-    if (!rstn) begin
+    if (!rst) begin
       mul_waiting <= 1;
     end else if (mul_waiting) begin
       if (instr_rs1_signed) rs1 <= $signed(pcpi_rs1);
@@ -2607,7 +2607,7 @@ module picorv32_pcpi_mul #(
   always @(posedge clk) begin
     pcpi_wr <= 0;
     pcpi_ready <= 0;
-    if (mul_finish && rstn) begin
+    if (mul_finish && rst) begin
       pcpi_wr <= 1;
       pcpi_ready <= 1;
       pcpi_rd <= instr_any_mulh ? rd >> 32 : rd;
@@ -2621,7 +2621,7 @@ module picorv32_pcpi_fast_mul #(
     parameter MUL_CLKGATE = 0
 ) (
     input clk,
-    rstn,
+    rst,
 
     input         pcpi_valid,
     input  [31:0] pcpi_insn,
@@ -2652,7 +2652,7 @@ module picorv32_pcpi_fast_mul #(
     instr_mulhsu = 0;
     instr_mulhu = 0;
 
-    if (rstn && (EXTRA_INSN_FFS ? pcpi_insn_valid_q : pcpi_insn_valid)) begin
+    if (rst && (EXTRA_INSN_FFS ? pcpi_insn_valid_q : pcpi_insn_valid)) begin
       case (pcpi_insn[14:12])
         3'b000: instr_mul = 1;
         3'b001: instr_mulh = 1;
@@ -2691,7 +2691,7 @@ module picorv32_pcpi_fast_mul #(
     active[3:1] <= active;
     shift_out   <= instr_any_mulh;
 
-    if (!rstn) active <= 0;
+    if (!rst) active <= 0;
   end
 
   assign pcpi_wr = active[EXTRA_MUL_FFS?3 : 1];
@@ -2715,7 +2715,7 @@ endmodule
 
 module picorv32_pcpi_div (
     input clk,
-    rstn,
+    rst,
 
     input             pcpi_valid,
     input      [31:0] pcpi_insn,
@@ -2738,7 +2738,7 @@ module picorv32_pcpi_div (
     instr_rem  <= 0;
     instr_remu <= 0;
 
-    if (rstn && pcpi_valid && !pcpi_ready && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+    if (rst && pcpi_valid && !pcpi_ready && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
       case (pcpi_insn[14:12])
         3'b100: instr_div <= 1;
         3'b101: instr_divu <= 1;
@@ -2747,8 +2747,8 @@ module picorv32_pcpi_div (
       endcase
     end
 
-    pcpi_wait   <= instr_any_div_rem && rstn;
-    pcpi_wait_q <= pcpi_wait && rstn;
+    pcpi_wait   <= instr_any_div_rem && rst;
+    pcpi_wait_q <= pcpi_wait && rst;
   end
 
   reg [31:0] dividend;
@@ -2763,7 +2763,7 @@ module picorv32_pcpi_div (
     pcpi_wr <= 0;
     pcpi_rd <= 'bx;
 
-    if (!rstn) begin
+    if (!rst) begin
       running <= 0;
     end else if (start) begin
       running <= 1;
@@ -2835,7 +2835,7 @@ module picorv32_axi #(
     parameter [31:0] STACKADDR = 32'hffff_ffff
 ) (
     input  clk,
-    rstn,
+    rst,
     output trap,
 
     // AXI4-lite master memory interface
@@ -2912,7 +2912,7 @@ module picorv32_axi #(
 
   picorv32_axi_adapter axi_adapter (
       .clk            (clk),
-      .rstn           (rstn),
+      .rst           (rst),
       .mem_axi_awvalid(mem_axi_awvalid),
       .mem_axi_awready(mem_axi_awready),
       .mem_axi_awaddr (mem_axi_awaddr),
@@ -2967,7 +2967,7 @@ module picorv32_axi #(
       .STACKADDR           (STACKADDR)
   ) picorv32_core (
       .clk (clk),
-      .rstn(rstn),
+      .rst(rst),
       .trap(trap),
 
       .mem_valid(mem_valid),
@@ -3024,7 +3024,7 @@ endmodule
 
 module picorv32_axi_adapter (
     input clk,
-    rstn,
+    rst,
 
     // AXI4-lite master memory interface
 
@@ -3083,7 +3083,7 @@ module picorv32_axi_adapter (
   assign mem_rdata = mem_axi_rdata;
 
   always @(posedge clk) begin
-    if (!rstn) begin
+    if (!rst) begin
       ack_awvalid <= 0;
     end else begin
       xfer_done <= mem_valid && mem_ready;
@@ -3196,10 +3196,10 @@ module picorv32_wb #(
   reg  [31:0] mem_rdata;
 
   wire        clk;
-  wire        rstn;
+  wire        rst;
 
   assign clk  = wb_clk_i;
-  assign rstn = ~wb_rst_i;
+  assign rst = ~wb_rst_i;
 
   picorv32 #(
       .ENABLE_COUNTERS     (ENABLE_COUNTERS),
@@ -3229,7 +3229,7 @@ module picorv32_wb #(
       .STACKADDR           (STACKADDR)
   ) picorv32_core (
       .clk (clk),
-      .rstn(rstn),
+      .rst(rst),
       .trap(trap),
 
       .mem_valid(mem_valid),
@@ -3344,7 +3344,7 @@ module RAM #(
     parameter integer WORDS = 256
 ) (
     input wire clk,
-    input wire rstn,
+    input wire rst,
 
     input wire valid,
     output reg ready,
@@ -3367,7 +3367,7 @@ endmodule
 // --- SPIROM.sv ---
 module SPIROM (
     input wire clk,
-    input wire rstn,
+    input wire rst,
 
     input wire valid,
     output wire ready,
@@ -3407,7 +3407,7 @@ module SPIROM (
 
   spimemio rom (
       .clk (clk),
-      .rstn(rstn),
+      .rst(rst),
 
       .valid(valid),
       .ready(ready),
@@ -3461,7 +3461,7 @@ endmodule
 
 module spimemio (
     input clk,
-    rstn,
+    rst,
 
     input valid,
     output ready,
@@ -3541,7 +3541,7 @@ module spimemio (
 
   always @(posedge clk) begin
     softreset <= !config_en || cfgreg_we;
-    if (!rstn) begin
+    if (!rst) begin
       softreset <= 1;
       config_en <= 1;
       config_csb <= 0;
@@ -3616,7 +3616,7 @@ module spimemio (
 
   spimemio_xfer xfer (
       .clk         (clk),
-      .rstn        (xfer_rstn),
+      .rst        (xfer_rstn),
       .din_valid   (din_valid),
       .din_ready   (din_ready),
       .din_data    (din_data),
@@ -3651,7 +3651,7 @@ module spimemio (
     xfer_rstn <= 1;
     din_valid <= 0;
 
-    if (!rstn || softreset) begin
+    if (!rst || softreset) begin
       state <= 0;
       xfer_rstn <= 0;
       rd_valid <= 0;
@@ -3821,7 +3821,7 @@ endmodule
 
 module spimemio_xfer (
     input clk,
-    rstn,
+    rst,
 
     input        din_valid,
     output       din_ready,
@@ -3883,9 +3883,9 @@ module spimemio_xfer (
     xfer_tag_q <= xfer_tag;
   end
 
-  assign din_ready  = din_valid && rstn && next_fetch;
+  assign din_ready  = din_valid && rst && next_fetch;
 
-  assign dout_valid = (xfer_ddr_q ? fetch && !last_fetch : next_fetch && !fetch) && rstn;
+  assign dout_valid = (xfer_ddr_q ? fetch && !last_fetch : next_fetch && !fetch) && rst;
   assign dout_data  = ibuffer;
   assign dout_tag   = xfer_tag_q;
 
@@ -3980,7 +3980,7 @@ module spimemio_xfer (
   end
 
   always @(posedge clk) begin
-    if (!rstn) begin
+    if (!rst) begin
       fetch <= 1;
       last_fetch <= 1;
       flash_csb <= 1;
