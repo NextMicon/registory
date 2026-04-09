@@ -1,8 +1,38 @@
 target:
-  bus: "true"
-ports:
-  ch0: {bit: 8, direct: in, side: left}
-  ch1: {bit: 8, direct: in, side: left}
-  ch2: {bit: 8, direct: in, side: left}
-  ch3: {bit: 8, direct: in, side: left}
-  out: {bit: 12, direct: out, side: right}
+  bus: 'true'
+elems:
+  ch0:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  ch1:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 60.0
+    flip: true
+  ch2:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 120.0
+    flip: true
+  ch3:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 180.0
+    flip: true
+  out:
+    type: PortOut
+    bit: 12
+    pos:
+    - 400.0
+    - 0.0
+    flip: false

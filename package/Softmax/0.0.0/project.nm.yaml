@@ -1,6 +1,18 @@
 target:
-  bus: "true"
-ports:
-  in: {bit: 288, direct: in, side: left}
-  out: {bit: 288, direct: out, side: right}
+  bus: 'true'
 params: {}
+elems:
+  in:
+    type: PortIn
+    bit: 288
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  out:
+    type: PortOut
+    bit: 288
+    pos:
+    - 400.0
+    - 0.0
+    flip: false

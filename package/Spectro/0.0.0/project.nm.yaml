@@ -1,9 +1,29 @@
 target:
-  bus: "true"
-ports:
-  in: {bit: 12, direct: in, side: left}
-  sample: {bit: 1, direct: in, side: left}
-  done: {bit: 1, direct: out, side: right}
+  bus: 'true'
 params: {}
-size: [240, 80]
+size:
+- 240
+- 80
 textX: 0
+elems:
+  in:
+    type: PortIn
+    bit: 12
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  sample:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 60.0
+    flip: true
+  done:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 0.0
+    flip: false

@@ -1,9 +1,45 @@
 target:
-  bus: "true"
-ports:
-  din: {bit: 12, direct: in, side: left}
-  sample: {bit: 1, direct: in, side: left}
-  cs: {bit: 1, direct: out, side: right}
-  scl: {bit: 1, direct: out, side: right}
-  sdi: {bit: 1, direct: out, side: right}
-  ldac: {bit: 1, direct: out, side: right}
+  bus: 'true'
+elems:
+  din:
+    type: PortIn
+    bit: 12
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  sample:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 60.0
+    flip: true
+  cs:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 0.0
+    flip: false
+  scl:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 60.0
+    flip: false
+  sdi:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 120.0
+    flip: false
+  ldac:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 180.0
+    flip: false

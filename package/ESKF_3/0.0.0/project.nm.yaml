@@ -1,27 +1,165 @@
 target:
-  bus: "true"
-ports:
-  w_trig: {bit: 1, direct: out, side: left}
-  w_valid: {bit: 1, direct: in, side: left}
-  w_x: {bit: 8, direct: in, side: left}
-  w_y: {bit: 8, direct: in, side: left}
-  w_z: {bit: 8, direct: in, side: left}
-  a_trig: {bit: 1, direct: out, side: left}
-  a_valid: {bit: 1, direct: in, side: left}
-  a_x: {bit: 8, direct: in, side: left}
-  a_y: {bit: 8, direct: in, side: left}
-  a_z: {bit: 8, direct: in, side: left}
-  gnss_trig: {bit: 1, direct: out, side: left}
-  gnss_valid: {bit: 1, direct: in, side: left}
-  gnss_lat: {bit: 8, direct: in, side: left}
-  gnss_lng: {bit: 8, direct: in, side: left}
-  x: {bit: 8, direct: out, side: right}
-  y: {bit: 8, direct: out, side: right}
-  z: {bit: 8, direct: out, side: right}
-  vx: {bit: 8, direct: out, side: right}
-  vy: {bit: 8, direct: out, side: right}
-  vz: {bit: 8, direct: out, side: right}
-  ax: {bit: 8, direct: out, side: right}
-  ay: {bit: 8, direct: out, side: right}
-  az: {bit: 8, direct: out, side: right}
+  bus: 'true'
 params: {}
+elems:
+  w_trig:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 0.0
+    flip: false
+  w_valid:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  w_x:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 60.0
+    flip: true
+  w_y:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 120.0
+    flip: true
+  w_z:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 180.0
+    flip: true
+  a_trig:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 60.0
+    flip: false
+  a_valid:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 240.0
+    flip: true
+  a_x:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 300.0
+    flip: true
+  a_y:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 360.0
+    flip: true
+  a_z:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 420.0
+    flip: true
+  gnss_trig:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 120.0
+    flip: false
+  gnss_valid:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 480.0
+    flip: true
+  gnss_lat:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 540.0
+    flip: true
+  gnss_lng:
+    type: PortIn
+    bit: 8
+    pos:
+    - 0.0
+    - 600.0
+    flip: true
+  x:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 180.0
+    flip: false
+  y:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 240.0
+    flip: false
+  z:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 300.0
+    flip: false
+  vx:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 360.0
+    flip: false
+  vy:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 420.0
+    flip: false
+  vz:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 480.0
+    flip: false
+  ax:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 540.0
+    flip: false
+  ay:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 600.0
+    flip: false
+  az:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 660.0
+    flip: false

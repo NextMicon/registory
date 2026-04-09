@@ -1,7 +1,25 @@
 target:
-  bus: "true"
-ports:
-  io: {bit: 1, direct: out, side: right}
-  tx: {bit: 1, direct: out, side: right}
-  rx: {bit: 1, direct: in, side: right}
+  bus: 'true'
 params: {}
+elems:
+  io:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 0.0
+    flip: false
+  tx:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 60.0
+    flip: false
+  rx:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 0.0
+    flip: true

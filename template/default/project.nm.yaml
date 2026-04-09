@@ -1,7 +1,7 @@
 target:
   arch: tinyfpga-bx
 params: {}
-ports:
+pins:
   led: led
 elems:
   led_reg: {type: RegWrite, bit: 1, pos: [100, 60], flip: true}

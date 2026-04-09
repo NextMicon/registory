@@ -1,7 +1,25 @@
 target:
-  bus: "true"
-ports:
-  scl: {bit: 1, direct: in, side: right}
-  miso: {bit: 1, direct: in, side: right}
-  mosi: {bit: 1, direct: out, side: right}
+  bus: 'true'
 params: {}
+elems:
+  scl:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  miso:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 60.0
+    flip: true
+  mosi:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 0.0
+    flip: false

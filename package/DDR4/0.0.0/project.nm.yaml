@@ -1,11 +1,53 @@
 target:
-  bus: "true"
-ports:
-  reset_n: {bit: 1, direct: out, side: left}
-  cs_n: {bit: 1, direct: out, side: left}
-  clk_en: {bit: 1, direct: out, side: left}
-  clk_t: {bit: 1, direct: out, side: left}
-  clk_n: {bit: 1, direct: out, side: left}
-  dq: {bit: 1, direct: out, side: left}
-  dqs: {bit: 1, direct: out, side: left}
+  bus: 'true'
 params: {}
+elems:
+  reset_n:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 0.0
+    flip: false
+  cs_n:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 60.0
+    flip: false
+  clk_en:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 120.0
+    flip: false
+  clk_t:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 180.0
+    flip: false
+  clk_n:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 240.0
+    flip: false
+  dq:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 300.0
+    flip: false
+  dqs:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 360.0
+    flip: false

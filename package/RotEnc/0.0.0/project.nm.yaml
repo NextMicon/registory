@@ -1,6 +1,24 @@
 target:
-  bus: "true"
-ports:
-  a: {bit: 1, direct: in, side: left}
-  b: {bit: 1, direct: in, side: left}
-  z: {bit: 1, direct: in, side: left}
+  bus: 'true'
+elems:
+  a:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  b:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 60.0
+    flip: true
+  z:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 120.0
+    flip: true

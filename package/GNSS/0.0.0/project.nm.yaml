@@ -1,11 +1,53 @@
 target:
-  bus: "true"
-ports:
-  scl: {bit: 1, direct: out, side: left}
-  mosi: {bit: 1, direct: out, side: left}
-  miso: {bit: 1, direct: in, side: left}
-  trig: {bit: 1, direct: in, side: right}
-  valid: {bit: 1, direct: out, side: right}
-  lat: {bit: 8, direct: out, side: right}
-  lng: {bit: 8, direct: out, side: right}
+  bus: 'true'
 params: {}
+elems:
+  scl:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 0.0
+    flip: false
+  mosi:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 60.0
+    flip: false
+  miso:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 0.0
+    flip: true
+  trig:
+    type: PortIn
+    bit: 1
+    pos:
+    - 0.0
+    - 60.0
+    flip: true
+  valid:
+    type: PortOut
+    bit: 1
+    pos:
+    - 400.0
+    - 120.0
+    flip: false
+  lat:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 180.0
+    flip: false
+  lng:
+    type: PortOut
+    bit: 8
+    pos:
+    - 400.0
+    - 240.0
+    flip: false
