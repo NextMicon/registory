@@ -15,13 +15,13 @@ async function main() {
   const root = join(fileURLToPath(import.meta.url), "..");
   const dist = join(root, "dist");
 
-  // --- 1. Package ---
+  // --- 1. Modules ---
 
-  await mkdir(join(dist, "package"), { recursive: true });
-  const packages = await processEntries(
+  await mkdir(join(dist, "modules"), { recursive: true });
+  const modules = await processEntries(
     join(root, "package"),
-    join(dist, "package"),
-    "project.nm.yaml",
+    join(dist, "modules"),
+    "module.nm.yaml",
   );
 
   // --- 2. Platform ---
@@ -34,20 +34,20 @@ async function main() {
   );
 
   // --- 3. Index ---
-  const index = { packages, platforms };
+  const index = { modules, platforms };
 
   await Promise.all([
     writeFile(join(dist, "index.yaml"), stringifyYaml(index)),
     writeFile(
       join(dist, "README.md"),
       [
-        "# NextMicon Package Registry",
+        "# NextMicon Registry",
         "",
-        "## Packages",
+        "## Modules",
         "",
         "| Archive | Hash |",
         "|---------|------|",
-        ...index.packages.map(({ name, hash }) => `| [${name}](./package/${name}.tar.gz) | \`${hash}\` |`),
+        ...index.modules.map(({ name, hash }) => `| [${name}](./modules/${name}.tar.gz) | \`${hash}\` |`),
         "",
         "## Platforms",
         "",
