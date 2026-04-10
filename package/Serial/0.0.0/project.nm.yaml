@@ -1,18 +1,9 @@
 target:
   bus: 'true'
 params: {}
+ports: {}
 elems:
-  rx:
-    type: PortIn
-    bit: 1
-    pos:
-    - 0.0
-    - 0.0
-    flip: true
-  tx:
-    type: PortOut
-    bit: 1
-    pos:
-    - 400.0
-    - 0.0
-    flip: false
+  rx: {type: PortIn, bit: 1, pos: [100, 60], flip: false}
+  tx: {type: PortOut, bit: 1, pos: [100, 100], flip: false}
+wires: {}
+comments: {}
