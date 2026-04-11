@@ -158,12 +158,14 @@ scripts:
         echo "  Running simulation..."
         vvp build/sim
         echo "  VCD: build/simulation.vcd"
+        micon signal build/simulation.vcd
       src:
         - build/*.sv
         - build/modules/*.sv
         - build/fw.bin
       dst:
         - build/simulation.vcd
+        - build/signals.nm.yaml
 
   windows:
     generate:
