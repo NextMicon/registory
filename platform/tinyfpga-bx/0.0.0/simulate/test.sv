@@ -1,4 +1,7 @@
-`timescale 1 ns / 1 ps
+// Time unit = half clock period, so 1 full clock cycle = 2 time units.
+// (This maps VCD timestamps directly to half-clock counts, making
+// signals.nm.yaml easy to read in the WebUI.)
+`timescale 1 ns / 1 ns
 
 module tb;
 
@@ -6,17 +9,15 @@ module tb;
   // Clock
 
   reg clk = 0;
-  always #5 clk = ~clk;
+  always #1 clk = ~clk;
 
   /////////////////////////////////////
   // Simulation
 
-  parameter CYCLE = 500_0000;
+  parameter CYCLE = 100_0000;
   initial begin
     $dumpfile("build/simulation.vcd");
-    $dumpvars(0, tb);
-    // Initialize POR counter (iverilog needs this)
-    dut.u_por.cnt = 0;
+    $dumpvars(0, dut.main);
     repeat (CYCLE) @(posedge clk);
     $finish;
   end
@@ -62,6 +63,7 @@ module tb;
       .io3(flash_io3)
   );
 
+`ifdef HAS_SERIAL
   /////////////////////////////////////
   // UART Serial Monitor
   //
@@ -74,22 +76,23 @@ module tb;
 
   reg [7:0] serial_receive_buffer = 0;
   always begin
-    @(negedge dut.u_main.tx);  // begin receiving
+    @(negedge dut.main.tx);  // begin receiving
     repeat (CLKDIV) @(posedge clk);  // start bit
     repeat (8) begin
       repeat (CLKDIV) @(posedge clk);  // data bit
-      serial_receive_buffer = {dut.u_main.tx, serial_receive_buffer[7:1]};
+      serial_receive_buffer = {dut.main.tx, serial_receive_buffer[7:1]};
     end
     repeat (CLKDIV) @(posedge clk);  // stop bit
     if (serial_receive_buffer < 32 || serial_receive_buffer >= 127)
       $display("Serial data: %d", serial_receive_buffer);
     else $display("Serial data: '%c'", serial_receive_buffer);
   end
+`endif
 
 endmodule
 
 
-`timescale 1 ns / 1 ps
+`timescale 1 ns / 1 ns
 
 module spiflash (
     input csb,

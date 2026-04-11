@@ -49,7 +49,7 @@ module top (
 );
   // Power-on Reset
   logic rst;
-  por u_por (
+  por por (
       .clk (clk),
       .rst(rst)
   );
@@ -66,7 +66,7 @@ module top (
   logic [31:0] irq;
 
   // System module (CPU + RAM + ROM)
-  sys u_sys (
+  sys sys (
       .clk      (clk),
       .rst     (rst),
       .flash_csb(flash_csb),
@@ -99,7 +99,7 @@ module top (
   //   pin01..31 : inout  tri logic    — user I/O pins
   //   irq       : output logic [31:0] — interrupt vector to CPU
   //
-  main u_main (
+  main main (
       .clk      (clk),
       .rst     (rst),
       .mem_valid(mem_valid),
@@ -187,7 +187,7 @@ module sys (
       .ENABLE_DIV      (1),
       .ENABLE_IRQ      (1),
       .ENABLE_IRQ_QREGS(1)
-  ) u_cpu (
+  ) cpu (
       .clk      (clk),
       .rst     (rst),
       .mem_valid(cpu_valid),
@@ -216,7 +216,7 @@ module sys (
   end
   RAM #(
       .WORDS(2048)
-  ) u_ram (
+  ) ram (
       .clk  (clk),
       .rst (rst),
       .valid(ram_valid),
@@ -271,7 +271,7 @@ module sys (
     end
   end
 
-  SPIROM u_rom (
+  SPIROM rom (
       .clk            (clk),
       .rst           (rst),
       .valid          (rom_valid),
@@ -357,7 +357,7 @@ module por #(
     input var  logic clk,
     output var logic rst
 );
-  logic [N-1:0] cnt;
+  logic [N-1:0] cnt = 0;
   always_comb rst = &cnt;
   always_ff @(posedge clk) begin
     cnt <= cnt + N'({1'b0, !rst});
@@ -384,7 +384,7 @@ endmodule
  *
  */
 
-`timescale 1 ns / 1 ps
+`timescale 1 ns / 1 ns
 // `default_nettype none
 // `define DEBUGNETS
 // `define DEBUGREGS

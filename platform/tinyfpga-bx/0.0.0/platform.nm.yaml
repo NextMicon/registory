@@ -148,24 +148,36 @@ scripts:
         with open(sys.argv[1], 'w') as fh: fh.write(s)
           " "$f"
         done
+        # Detect Serial module presence (enables UART monitor in test.sv)
+        EXTRA_DEFINES=""
+        if grep -q "module Serial" $SV_FILES 2>/dev/null; then
+          EXTRA_DEFINES="-DHAS_SERIAL"
+        fi
+        # Copy cells_sim.v and patch its `timescale to 1ns/1ns so that iverilog's
+        # VCD precision matches the testbench (1 clock = 2 time units in VCD).
+        ORIG_CELLS_SIM=$(yosys-config --datdir/ice40/cells_sim.v)
+        cp "$ORIG_CELLS_SIM" build/cells_sim.v
+        sed -i '1s|^`timescale.*|`timescale 1 ns / 1 ns|' build/cells_sim.v
         # Compile and run with iverilog
-        CELLS_SIM=$(yosys-config --datdir/ice40/cells_sim.v)
         iverilog -g2012 -o build/sim \
           -DNO_ICE40_DEFAULT_ASSIGNMENTS \
+          $EXTRA_DEFINES \
           platform/simulate/test.sv \
           $SV_FILES \
-          "$CELLS_SIM"
+          build/cells_sim.v
         echo "  Running simulation..."
         vvp build/sim
         echo "  VCD: build/simulation.vcd"
-        micon signal build/simulation.vcd
+        mkdir -p simulation
+        micon signal build/simulation.vcd -o simulation/signals.nm.yaml
       src:
+        - build/read_sv.ys
         - build/*.sv
         - build/modules/*.sv
         - build/fw.bin
       dst:
         - build/simulation.vcd
-        - build/signals.nm.yaml
+        - simulation/signals.nm.yaml
 
   windows:
     generate:
