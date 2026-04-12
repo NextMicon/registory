@@ -45,177 +45,156 @@ intr:
 scripts:
   linux:
     generate:
+      note: Generate hardware and firmware from module.nm.yaml
       cmd: micon generate
       src:
-        - project.nm.yaml
-        - global/**/*.veryl
-        - local/**/*.veryl
-      dst:
-        - software/micon.rs
+        - module.nm.yaml
+        - modules/**/*.veryl
+        - .modules/**/*.veryl
+      out:
         - micon.veryl
+        - software/micon.rs
 
-    synth:
+    transpile:
+      note: Convert Veryl to SystemVerilog
       cmd: |
         set -e
         veryl build
         mv micon.f build/micon.f
-        sed 's/^/read_verilog -sv /' build/micon.f > build/read_sv.ys
-        printf 'read_verilog -sv %s\n' platform/hardware/*.sv >> build/read_sv.ys
-        yosys -s build/read_sv.ys -p "synth_ice40 -top top -json build/out.json"
       src:
         - micon.veryl
-        - local/**/*.veryl
-        - global/**/*.veryl
-        - platform/hardware/*.sv
-      dst:
-        - build/out.json
+        - modules/**/*.veryl
+        - .modules/**/*.veryl
+      out:
+        - build/micon.f
 
-    pnr:
+    synth:
+      note: Synthesize (yosys) → Place & Route (nextpnr) → Bitstream generation (icepack)
       cmd: |
         set -e
+        mkdir -p build/synth
+        sed 's/^/read_verilog -sv /' build/micon.f > build/synth/files.ys
+        printf 'read_verilog -sv %s\n' platform/hardware/*.sv >> build/synth/files.ys
+        yosys -s build/synth/files.ys -p "synth_ice40 -top top -json build/synth/out.json"
         nextpnr-ice40 --lp8k --package cm81 --threads $(nproc) \
           --pcf platform/hardware/pin.pcf \
-          --json build/out.json --asc build/out.asc
-        icetime -d lp8k -c 12 -mtr build/timing.rpt build/out.asc
+          --json build/synth/out.json --asc build/synth/out.asc
+        icetime -d lp8k -c 12 -mtr build/synth/timing.rpt build/synth/out.asc
+        icepack build/synth/out.asc build/hardware.bin
       src:
-        - build/out.json
-        - platform/hardware/pin.pcf
-      dst:
-        - build/out.asc
-
-    bitstream:
-      cmd: "icepack build/out.asc build/out.bin"
-      src:
-        - build/out.asc
-      dst:
-        - build/out.bin
+        - build/micon.f
+        - platform/hardware/*.sv
+      out:
+        - build/hardware.bin
 
     compile:
+      note: Compile firmware (Rust → RISC-V binary)
       cmd: |
         set -e
-        mkdir -p build
+        mkdir -p build/compile
         rustc --edition 2021 --target riscv32im-unknown-none-elf \
           -C opt-level=s -C panic=abort --emit=obj \
-          -o build/fw.o software/main.rs
+          -o build/compile/software.o software/main.rs
         riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -nostartfiles \
-          -Wl,-Bstatic,-T,platform/software/sections.lds,--strip-debug,-Map=build/fw.map,--cref,--no-warn-mismatch \
+          -Wl,-Bstatic,-T,platform/software/sections.lds,--strip-debug,-Map=build/compile/software.map,--cref,--no-warn-mismatch \
           -O3 -ffreestanding -nostdlib \
-          -o build/fw.elf platform/software/start.S build/fw.o
-        riscv64-unknown-elf-objcopy -O binary build/fw.elf build/fw.bin
-        truncate -s %256 build/fw.bin
-        riscv64-unknown-elf-objdump --demangle -D build/fw.elf > build/fw.objdump
-        riscv64-unknown-elf-nm --demangle --numeric-sort build/fw.elf > build/fw.nm
+          -o build/compile/software.elf platform/software/start.S build/compile/software.o
+        riscv64-unknown-elf-objcopy -O binary build/compile/software.elf build/software.bin
+        truncate -s %256 build/software.bin
+        riscv64-unknown-elf-objdump --demangle -D build/compile/software.elf > build/compile/software.objdump
+        riscv64-unknown-elf-nm --demangle --numeric-sort build/compile/software.elf > build/compile/software.nm
       src:
         - software/*.rs
         - Cargo.toml
         - platform/software/start.S
         - platform/software/sections.lds
-      dst:
-        - build/fw.bin
+      out:
+        - build/software.bin
 
     flash:
-      cmd: "tinyprog -p build/out.bin -u build/fw.bin"
+      note: Flash bitstream + firmware via TinyProg
+      cmd: "tinyprog -p build/hardware.bin -u build/software.bin"
       src:
-        - build/out.bin
-        - build/fw.bin
+        - build/hardware.bin
+        - build/software.bin
 
     flash-wsl:
+      note: Flash via WSL (copies to C:\tmp)
       cmd: |
         set -e
-        cp build/out.bin /mnt/c/tmp/out.bin
-        cp build/fw.bin /mnt/c/tmp/fw.bin
-        powershell.exe -c 'tinyprog -p C:\tmp\out.bin -u C:\tmp\fw.bin'
+        cp build/hardware.bin /mnt/c/tmp/hardware.bin
+        cp build/software.bin /mnt/c/tmp/software.bin
+        powershell.exe -c 'tinyprog -p C:\tmp\hardware.bin -u C:\tmp\software.bin'
       src:
-        - build/out.bin
-        - build/fw.bin
+        - build/hardware.bin
+        - build/software.bin
 
     simulate:
+      note: Run simulation with iverilog
       cmd: |
         set -e
+        mkdir -p build/simulation
         # Generate flash hex from firmware binary (16MB image, FW at 0x050000)
-        dd if=/dev/zero bs=1 count=$((0x050000)) 2>/dev/null > build/simu_flash.bin
-        cat build/fw.bin >> build/simu_flash.bin
-        truncate -s 16M build/simu_flash.bin
-        xxd -c 1 -p build/simu_flash.bin > build/simu_flash.hex
-        echo "  Flash hex: $(stat -c%s build/fw.bin) bytes FW at 0x050000"
-        # Patch !| for iverilog compatibility
-        SV_FILES=$(sed 's/read_verilog -sv //' build/read_sv.ys)
+        dd if=/dev/zero bs=1 count=$((0x050000)) 2>/dev/null > build/simulation/flash.bin
+        cat build/software.bin >> build/simulation/flash.bin
+        truncate -s 16M build/simulation/flash.bin
+        xxd -c 1 -p build/simulation/flash.bin > build/simulation/flash.hex
+        # SV file list: transpile output + platform hardware
+        SV_FILES="$(cat build/micon.f) $(echo platform/hardware/*.sv)"
+        # Patch !|signal → !(|signal) for iverilog compatibility
         for f in $SV_FILES; do
-          python3 -c "
-        import re, sys
-        with open(sys.argv[1]) as fh: s = fh.read()
-        s = re.sub(r'(?<=[( &|,])!\|(\w+)', r'!(|\1)', s)
-        with open(sys.argv[1], 'w') as fh: fh.write(s)
-          " "$f"
+          sed -E -i 's/([( &|,])!\|([a-zA-Z_][a-zA-Z0-9_]*)/\1!(|\2)/g' "$f"
         done
         # Detect Serial module presence (enables UART monitor in test.sv)
         EXTRA_DEFINES=""
         if grep -q "module Serial" $SV_FILES 2>/dev/null; then
           EXTRA_DEFINES="-DHAS_SERIAL"
         fi
-        # Copy cells_sim.v and patch its `timescale to 1ns/1ns so that iverilog's
-        # VCD precision matches the testbench (1 clock = 2 time units in VCD).
-        ORIG_CELLS_SIM=$(yosys-config --datdir/ice40/cells_sim.v)
-        cp "$ORIG_CELLS_SIM" build/cells_sim.v
-        sed -i '1s|^`timescale.*|`timescale 1 ns / 1 ns|' build/cells_sim.v
-        # Compile and run with iverilog
-        iverilog -g2012 -o build/sim \
+        # Patch cells.v timescale and test.sv hardcoded paths
+        cp "$(yosys-config --datdir/ice40/cells_sim.v)" build/simulation/cells.v
+        sed -i '1s|^`timescale.*|`timescale 1 ns / 1 ns|' build/simulation/cells.v
+        cp platform/simulate/test.sv build/simulation/test.sv
+        sed -i 's|build/simulation.vcd|simulation/out.vcd|;s|build/simu_flash.hex|build/simulation/flash.hex|' build/simulation/test.sv
+        # Compile and run
+        iverilog -g2012 -o build/simulation/sim \
           -DNO_ICE40_DEFAULT_ASSIGNMENTS \
           $EXTRA_DEFINES \
-          platform/simulate/test.sv \
+          build/simulation/test.sv \
           $SV_FILES \
-          build/cells_sim.v
-        echo "  Running simulation..."
-        vvp build/sim
-        echo "  VCD: build/simulation.vcd"
-        mkdir -p simulation
-        micon signal build/simulation.vcd -o simulation/signals.nm.yaml
+          build/simulation/cells.v
+        vvp build/simulation/sim
       src:
-        - build/read_sv.ys
-        - build/*.sv
-        - build/modules/*.sv
-        - build/fw.bin
-      dst:
-        - build/simulation.vcd
-        - simulation/signals.nm.yaml
+        - build/micon.f
+        - build/software.bin
+        - platform/hardware/*.sv
+      out:
+        - simulation/out.vcd
 
   windows:
     generate:
       cmd: micon generate
       src:
         - project.nm.yaml
-        - global\**\*.veryl
-        - local\**\*.veryl
-      dst:
+        - modules\**\*.veryl
+        - .modules\**\*.veryl
+      out:
         - software\micon.rs
         - hardware\main.veryl
 
     synth:
-      cmd: yosys -s build\read_sv.ys -p "synth_ice40 -top top -json build\out.json"
+      cmd: |
+        yosys -s build\files.ys -p "synth_ice40 -top top -json build\synth\out.json"
+        nextpnr-ice40 --lp8k --package cm81 --pcf platform\hardware\pin.pcf --json build\synth\out.json --asc build\synth\out.asc
+        icepack build\synth\out.asc build\hardware.bin
       src:
-        - build\read_sv.ys
-        - build\*.sv
-      dst:
-        - build\out.json
-
-    pnr:
-      cmd: nextpnr-ice40 --lp8k --package cm81 --pcf platform\hardware\pin.pcf --json build\out.json --asc build\out.asc
-      src:
-        - build\out.json
+        - build\files.ys
         - platform\hardware\pin.pcf
-      dst:
-        - build\out.asc
-
-    bitstream:
-      cmd: icepack build\out.asc build\out.bin
-      src:
-        - build\out.asc
-      dst:
-        - build\out.bin
+      out:
+        - build\hardware.bin
 
     flash:
-      cmd: tinyprog -p build\out.bin
+      cmd: tinyprog -p build\hardware.bin
       src:
-        - build\out.bin
+        - build\hardware.bin
 
   macos: {}
