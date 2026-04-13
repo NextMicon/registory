@@ -130,10 +130,10 @@ scripts:
         - build/software.bin
 
     simulate:
-      note: Run simulation with iverilog
+      note: Run simulation with Verilator
       cmd: |
         set -e
-        mkdir -p build/simulation
+        mkdir -p build/simulation simulation
 
         # Generate flash hex from firmware binary (16MB image, FW at 0x050000)
         dd if=/dev/zero bs=1 count=$((0x050000)) 2>/dev/null > build/simulation/flash.bin
@@ -144,25 +144,33 @@ scripts:
         # SV file list: transpile output + platform hardware
         SV_FILES="$(cat build/micon.f) $(echo platform/hardware/*.sv)"
 
-        # Detect Serial module presence (enables UART monitor in test.sv)
-        EXTRA_DEFINES=""
-        if grep -q "module Serial" $SV_FILES 2>/dev/null; then
-          EXTRA_DEFINES="-DHAS_SERIAL"
-        fi
-
-        # Copy cells.v and patch test.sv hardcoded paths
-        cp "$(yosys-config --datdir/ice40/cells_sim.v)" build/simulation/cells.v
+        # Copy simulation sources and strip synthesis-only modules from hardware SV
         cp platform/simulate/test.sv build/simulation/test.sv
-        sed -i 's|build/simulation.vcd|simulation/out.vcd|;s|build/simu_flash.hex|build/simulation/flash.hex|' build/simulation/test.sv
-        
-        # Compile and run
-        iverilog -g2012 -o build/simulation/sim \
-          -DNO_ICE40_DEFAULT_ASSIGNMENTS \
-          $EXTRA_DEFINES \
+        cp platform/simulate/main.cpp build/simulation/main.cpp
+        cp platform/simulate/cells.sv build/simulation/cells.sv
+        for f in $SV_FILES; do
+          sed '/^module tristate/,/^endmodule/d' "$f" > "build/simulation/$(basename "$f")"
+        done
+        SIM_SV_FILES=""
+        for f in $SV_FILES; do
+          SIM_SV_FILES="$SIM_SV_FILES build/simulation/$(basename "$f")"
+        done
+
+        # Compile with Verilator
+        verilator --cc --exe --build --trace \
+          --timescale "1ns/1ps" \
+          --top-module tb \
+          -Wno-lint -Wno-style \
+          -j $(nproc) \
+          --Mdir build/simulation/obj_dir \
+          -o sim \
           build/simulation/test.sv \
-          $SV_FILES \
-          build/simulation/cells.v
-        vvp build/simulation/sim
+          build/simulation/cells.sv \
+          $SIM_SV_FILES \
+          build/simulation/main.cpp
+
+        # Run simulation
+        build/simulation/obj_dir/sim
       src:
         - build/micon.f
         - build/software.bin

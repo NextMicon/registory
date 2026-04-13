@@ -1,38 +1,8 @@
 `timescale 1 ns / 1 ps
 
-module tb;
-
-  /////////////////////////////////////
-  // Clock
-
-  reg clk = 0;
-  always #31.25 clk = ~clk;  // 16 MHz (62.5 ns)
-
-
-  /////////////////////////////////////
-  // Simulation
-
-  parameter CYCLE = 100_0000;
-  initial begin
-    $dumpfile("build/simulation.vcd");
-    $dumpvars(0, dut.main);
-    repeat (CYCLE) @(posedge clk);
-    $finish;
-  end
-
-  /////////////////////////////////////
-  // Async events
-
-  integer cycle_cnt = 0;
-  reg irq_5 = 0;
-
-  always @(posedge clk) begin
-    cycle_cnt <= cycle_cnt + 1;
-    irq_5 <= 0;
-    case (cycle_cnt)
-      10_0000: irq_5 <= 1;
-    endcase
-  end
+module tb (
+    input clk
+);
 
   /////////////////////////////////////
   // DUT
@@ -61,32 +31,6 @@ module tb;
       .io3(flash_io3)
   );
 
-`ifdef HAS_SERIAL
-  /////////////////////////////////////
-  // UART Serial Monitor
-  //
-  // __       ______ ______   ______ _____
-  //   |__S__/__D0__X__D1__XXX__D7__/  S
-  //    Start                        Stop
-  //
-
-  parameter CLKDIV = 139;  // 16MHz / 115200
-
-  reg [7:0] serial_receive_buffer = 0;
-  always begin
-    @(negedge dut.main.tx);  // begin receiving
-    repeat (CLKDIV) @(posedge clk);  // start bit
-    repeat (8) begin
-      repeat (CLKDIV) @(posedge clk);  // data bit
-      serial_receive_buffer = {dut.main.tx, serial_receive_buffer[7:1]};
-    end
-    repeat (CLKDIV) @(posedge clk);  // stop bit
-    if (serial_receive_buffer < 32 || serial_receive_buffer >= 127)
-      $display("Serial data: %d", serial_receive_buffer);
-    else $display("Serial data: '%c'", serial_receive_buffer);
-  end
-`endif
-
 endmodule
 
 
@@ -100,6 +44,8 @@ module spiflash (
     inout io2,
     inout io3
 );
+  /* verilator lint_off MULTIDRIVEN */
+
   localparam verbose = 0;
   localparam integer latency = 8;
 
@@ -139,25 +85,25 @@ module spiflash (
   reg io2_dout = 0;
   reg io3_dout = 0;
 
-  assign #1 io0 = io0_oe ? io0_dout : 1'bz;
-  assign #1 io1 = io1_oe ? io1_dout : 1'bz;
-  assign #1 io2 = io2_oe ? io2_dout : 1'bz;
-  assign #1 io3 = io3_oe ? io3_dout : 1'bz;
+  assign io0 = io0_oe ? io0_dout : 1'bz;
+  assign io1 = io1_oe ? io1_dout : 1'bz;
+  assign io2 = io2_oe ? io2_dout : 1'bz;
+  assign io3 = io3_oe ? io3_dout : 1'bz;
 
   wire io0_delayed;
   wire io1_delayed;
   wire io2_delayed;
   wire io3_delayed;
 
-  assign #1 io0_delayed = io0;
-  assign #1 io1_delayed = io1;
-  assign #1 io2_delayed = io2;
-  assign #1 io3_delayed = io3;
+  assign io0_delayed = io0;
+  assign io1_delayed = io1;
+  assign io2_delayed = io2;
+  assign io3_delayed = io3;
 
   reg [7:0] memory[0:16*1024*1024-1];
 
   initial begin
-    $readmemh("build/simu_flash.hex", memory);
+    $readmemh("build/simulation/flash.hex", memory);
   end
 
   task spi_action;
@@ -309,4 +255,6 @@ module spiflash (
       endcase
     end
   end
+
+  /* verilator lint_on MULTIDRIVEN */
 endmodule
