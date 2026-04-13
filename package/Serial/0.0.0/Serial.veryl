@@ -107,12 +107,12 @@ module simpleuart #(
         } else {
             if |reg_div_we { send_dummy = 1; }
             send_divcnt = send_divcnt + 1;
-            if send_dummy && !|send_bitcnt {
+            if send_dummy && send_bitcnt == 0 {
                 send_pattern = ~10'b0;
                 send_bitcnt  = 15;
                 send_divcnt  = 0;
                 send_dummy   = 0;
-            } else if reg_dat_we && !|send_bitcnt {
+            } else if reg_dat_we && send_bitcnt == 0 {
                 send_pattern = {1'b1, reg_dat_di[7:0], 1'b0};
                 send_bitcnt  = 10;
                 send_divcnt  = 0;

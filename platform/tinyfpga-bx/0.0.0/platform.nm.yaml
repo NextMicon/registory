@@ -134,27 +134,27 @@ scripts:
       cmd: |
         set -e
         mkdir -p build/simulation
+
         # Generate flash hex from firmware binary (16MB image, FW at 0x050000)
         dd if=/dev/zero bs=1 count=$((0x050000)) 2>/dev/null > build/simulation/flash.bin
         cat build/software.bin >> build/simulation/flash.bin
         truncate -s 16M build/simulation/flash.bin
         xxd -c 1 -p build/simulation/flash.bin > build/simulation/flash.hex
+
         # SV file list: transpile output + platform hardware
         SV_FILES="$(cat build/micon.f) $(echo platform/hardware/*.sv)"
-        # Patch !|signal → !(|signal) for iverilog compatibility
-        for f in $SV_FILES; do
-          sed -E -i 's/([( &|,])!\|([a-zA-Z_][a-zA-Z0-9_]*)/\1!(|\2)/g' "$f"
-        done
+
         # Detect Serial module presence (enables UART monitor in test.sv)
         EXTRA_DEFINES=""
         if grep -q "module Serial" $SV_FILES 2>/dev/null; then
           EXTRA_DEFINES="-DHAS_SERIAL"
         fi
-        # Patch cells.v timescale and test.sv hardcoded paths
+
+        # Copy cells.v and patch test.sv hardcoded paths
         cp "$(yosys-config --datdir/ice40/cells_sim.v)" build/simulation/cells.v
-        sed -i '1s|^`timescale.*|`timescale 1 ns / 1 ns|' build/simulation/cells.v
         cp platform/simulate/test.sv build/simulation/test.sv
         sed -i 's|build/simulation.vcd|simulation/out.vcd|;s|build/simu_flash.hex|build/simulation/flash.hex|' build/simulation/test.sv
+        
         # Compile and run
         iverilog -g2012 -o build/simulation/sim \
           -DNO_ICE40_DEFAULT_ASSIGNMENTS \

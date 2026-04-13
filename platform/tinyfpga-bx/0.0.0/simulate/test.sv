@@ -1,7 +1,4 @@
-// Time unit = half clock period, so 1 full clock cycle = 2 time units.
-// (This maps VCD timestamps directly to half-clock counts, making
-// signals.nm.yaml easy to read in the WebUI.)
-`timescale 1 ns / 1 ns
+`timescale 1 ns / 1 ps
 
 module tb;
 
@@ -9,7 +6,8 @@ module tb;
   // Clock
 
   reg clk = 0;
-  always #1 clk = ~clk;
+  always #31.25 clk = ~clk;  // 16 MHz (62.5 ns)
+
 
   /////////////////////////////////////
   // Simulation
@@ -92,7 +90,7 @@ module tb;
 endmodule
 
 
-`timescale 1 ns / 1 ns
+`timescale 1 ns / 1 ps
 
 module spiflash (
     input csb,
