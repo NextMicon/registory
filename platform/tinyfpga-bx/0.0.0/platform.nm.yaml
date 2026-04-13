@@ -133,7 +133,7 @@ scripts:
       note: Run simulation with Verilator
       cmd: |
         set -e
-        mkdir -p build/simulation simulation
+        mkdir -p build/simulation
 
         # Generate flash hex from firmware binary (16MB image, FW at 0x050000)
         dd if=/dev/zero bs=1 count=$((0x050000)) 2>/dev/null > build/simulation/flash.bin
@@ -146,8 +146,8 @@ scripts:
 
         # Copy simulation sources and strip synthesis-only modules from hardware SV
         cp platform/simulate/test.sv build/simulation/test.sv
-        cp platform/simulate/main.cpp build/simulation/main.cpp
         cp platform/simulate/cells.sv build/simulation/cells.sv
+        cp simulate/main.cpp build/simulation/main.cpp
         for f in $SV_FILES; do
           sed '/^module tristate/,/^endmodule/d' "$f" > "build/simulation/$(basename "$f")"
         done
@@ -160,6 +160,7 @@ scripts:
         verilator --cc --exe --build --trace \
           --timescale "1ns/1ps" \
           --top-module tb \
+          --public-flat-rw \
           -Wno-lint -Wno-style \
           -j $(nproc) \
           --Mdir build/simulation/obj_dir \
@@ -172,6 +173,7 @@ scripts:
         # Run simulation
         build/simulation/obj_dir/sim
       src:
+        - simulate/main.cpp
         - build/micon.f
         - build/software.bin
         - platform/hardware/*.sv
