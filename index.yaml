@@ -1,0 +1,60 @@
+modules:
+  - name: ADC:0.0.0
+    hash: 4eeb34f4123f61f016d0f9dd07e41d26d9201203158a4d0303e6fc84c39445f6
+  - name: AND:0.0.0
+    hash: 430fd71f52f6b2194b5f19da2805cf14a8e2f4d065386b464abd81aaf441983e
+  - name: Acc:0.0.0
+    hash: 6be80986ac6add5bd2d13916ad1fb343172a449577d3522f1d80a4035c38c2d8
+  - name: Analog:0.0.0
+    hash: 369a8a5ec97a21354f121e1e43a305bd4477246940346164afedc88c72d6ca7c
+  - name: Counter:0.0.0
+    hash: af54fcdce1d0da5a1849fb42b82143b3bcc151cefeb48ac493c4997462e6bbf5
+  - name: DDR4:0.0.0
+    hash: 7aec625819b7c47c74116e6bdec42882949d27363da76df84151191ff5a34426
+  - name: DShotM:0.0.0
+    hash: bbb6a80d078032ee0f1cdc7d84ea3987308a715fdd86bfff23a55dbad9cd0320
+  - name: Debounce:0.0.0
+    hash: 0df188c6508522af9cc73a1bb17a04466b2991d24d2c4073666914a3eb0fcf5d
+  - name: Digital:0.0.0
+    hash: 199ef010b47c663f725e92fae1ff4e0f3ccd3020e0f44611e5d9d1ad57410051
+  - name: ESKF_3:0.0.0
+    hash: 4fd3d4b861106deeb729eefec067cd211d2e5a5df749e244a7c99f1d697439d5
+  - name: GNSS:0.0.0
+    hash: d4cc10beb1cb73856232f3e1accb30954ffbd121f53f325c31a32f2da4a4fb48
+  - name: Gyro:0.0.0
+    hash: 6be80986ac6add5bd2d13916ad1fb343172a449577d3522f1d80a4035c38c2d8
+  - name: I2CMaster:0.0.0
+    hash: ffb20a2429d9f56b6d5ea45f5888f52c2bbceda7fc9382c648c2e1f911978726
+  - name: Matmul:0.0.0
+    hash: 374cc68357e49dc0b0a1106b0bfab0387a2800a036df12dba079e554d47db8b1
+  - name: Mixier:0.0.0
+    hash: 9e0f5315f04ff19e9389675deaa0b4c080af1be94ffa360c42a899041e4bfb45
+  - name: Mux:0.0.0
+    hash: d59d442d2e157e434f8803b798bf68105b2310d94d4be269f8fbcb4fc00204d0
+  - name: Norm:0.0.0
+    hash: 1a2ebc656efa3b4d9b7c951e1054edc7b5b5b52af8b9e77532dcf5be9e33cc34
+  - name: OR:0.0.0
+    hash: 430fd71f52f6b2194b5f19da2805cf14a8e2f4d065386b464abd81aaf441983e
+  - name: RotEnc:0.0.0
+    hash: eb84aa065b03a359d3132f5ce5d0b5464e6bcc6c722c9eb53e148fbcff9b6144
+  - name: SPIDAC:0.0.0
+    hash: c75cfa0fcb5664637b9f23e271ef7c18230ef442bebd992825321af12bbac8b9
+  - name: SPIMaster:0.0.0
+    hash: 3fcfd8a01c790246b2eac1cad7044e43005a514b2d6eaa5809d51669d6c8349f
+  - name: SPISlave:0.0.0
+    hash: ee31345ea9ce82f21c9206cfe0e231c28bd9fd71b097a394bb43ee3562d2b1ec
+  - name: Serial:0.0.0
+    hash: c9c7fe91954c21700c2ee373820bc6db0900846ac22d3166bf34e7c67e6dfe74
+  - name: Softmax:0.0.0
+    hash: 1a2ebc656efa3b4d9b7c951e1054edc7b5b5b52af8b9e77532dcf5be9e33cc34
+  - name: Spectro:0.0.0
+    hash: b52db8cda296f91f341b3bce6efca2efd992d69fd1e55532249dfd51bc1cc9c6
+platforms:
+  - name: kria-kv260:0.0.0
+    hash: 69f5974f884554342b47c8c952308683cacfffd7a26345f1c579627131eff382
+  - name: tangnano20k:0.0.0
+    hash: 08bc2c1a392984e5c885eb151a5f6f5ddfaf7ade659eefc6ef2fe1c2cd750551
+  - name: tangnano9k:0.0.0
+    hash: cf7a42845fa307e1297dc9ccfc834358969ad978d964602714498bb10b443ba0
+  - name: tinyfpga-bx:0.0.0
+    hash: b49f374cb1c8271943d3083584e2e59ee27d3d4052b6fcc038664f70265b849b
