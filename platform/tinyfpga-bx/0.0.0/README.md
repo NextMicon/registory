@@ -4,12 +4,11 @@
 
 ## Hardware
 
-- FPGA: Lattice iCE40 UP5K - SG48
-- Logic Cell: 5280
-- Block RAM: 30 x 4 Kbit
-- SPRAM: 4 x 32 Kbit
+- FPGA: Lattice iCE40 LP8K - CM81
+- Logic Cell: 7680
+- Block RAM: 32 x 4 Kbit
 - Clock: 16 MHz
-- SPI Flash: 4 Mbit
+- SPI Flash: 8 Mbit
 
 ## Tools
 
